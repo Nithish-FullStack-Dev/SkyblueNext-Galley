@@ -117,10 +117,39 @@ export default function LoginPage() {
             )}
             <Button
               type="submit"
-              className="w-full rounded-xl py-6 text-lg font-semibold shadow-md transition-all hover:scale-[1.02]"
               disabled={loading}
+              className="
+    w-full
+    rounded-xl
+    py-6
+    text-lg
+    font-semibold
+    shadow-md
+    transition-all
+    duration-200
+    hover:scale-[1.02]
+    disabled:cursor-not-allowed
+    disabled:opacity-80
+  "
             >
-              {loading ? "Logging in..." : "Login"}
+              {loading ? (
+                <div className="flex items-center justify-center gap-2">
+                  <div
+                    className="
+          h-5
+          w-5
+          animate-spin
+          rounded-full
+          border-2
+          border-white/30
+          border-t-white
+        "
+                  />
+                  <span>Logging in...</span>
+                </div>
+              ) : (
+                "Login"
+              )}
             </Button>
           </form>
         </CardContent>
