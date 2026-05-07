@@ -1,0 +1,179 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  
+}
+
+enum UserRole {
+  admin
+  crew
+  approver
+  director
+  pilot
+}
+
+enum UserStatus {
+  Active
+  Inactive
+}
+
+model User {
+  id        String     @id @default(cuid())
+  email     String     @unique
+  password  String
+  name      String
+image       String?
+  role      UserRole   @default(crew)
+
+permissions String[] @default([])
+
+  status    UserStatus @default(Active)
+
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  ordersCreated  FlightOrder[] @relation("CreatedBy")
+  ordersApproved FlightOrder[] @relation("ApprovedBy")
+}
+
+enum OrderStatus {
+  Draft
+  Submitted
+  Approved
+  SentToVendor
+  Confirmed
+  Completed
+  Rejected
+  Cancelled
+}
+
+model FlightOrder {
+  id                  String      @id @default(cuid())
+  flightNumber        String
+  tailNumber          String
+  departure           String
+  arrival             String
+  date                DateTime
+  departureTime       String?
+  timezone            String?
+  paxCount            Int
+  crewCount           Int
+  dietaryNotes        String?
+  serviceStyleNotes   String?
+  specialInstructions String?
+  pickupLocation      String?
+  status              OrderStatus @default(Draft)
+  rejectionReason     String?
+  billUrl             String?
+  billAmount          Float?
+  billNotes           String?
+  createdAt           DateTime    @default(now())
+  updatedAt           DateTime    @updatedAt
+
+  vendorId String?
+  vendor   Vendor? @relation(fields: [vendorId], references: [id])
+
+  createdBy  String
+  creator    User    @relation("CreatedBy", fields: [createdBy], references: [id])
+  approvedBy String?
+  approvedAt DateTime?
+  approver   User?   @relation("ApprovedBy", fields: [approvedBy], references: [id])
+
+  items OrderItem[]
+}
+
+model OrderItem {
+  id String @id @default(cuid())
+
+  itemId      String
+  name        String
+  type        String
+  category    String?
+  quantity    Int
+  notes       String?
+  price       Float?
+  currency    String? @default("INR")
+  vendorName  String?
+
+  unit        String?
+  dietaryTags String[]
+
+  orderId String
+  order   FlightOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  vendorId String?
+  vendor   Vendor? @relation(fields: [vendorId], references: [id])
+
+  createdAt DateTime @default(now())
+}
+
+model Vendor {
+  id              String   @id @default(cuid())
+  name            String
+  contactPerson   String
+  phone           String
+  email           String
+  address         String
+  serviceAirports String[]
+  deliveryOptions String[]
+  notes           String?
+  currency        String   @default("USD")
+  taxNotes        String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  menuItems  VendorMenuItem[]
+  orders     FlightOrder[]
+  orderItems OrderItem[]
+}
+
+model VendorMenuItem {
+  id            String   @id @default(cuid())
+  name          String
+  description   String?
+  price         Float
+  currency      String   @default("USD")
+  category      String
+  dietaryTags   String[]
+  allergens     String[]
+  catalogItemId String?
+  isAvailable   Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  vendorId String
+  vendor   Vendor @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+}
+model CatalogItem {
+  id          String   @id @default(cuid())
+
+  name        String
+  type        String // food, grocery
+
+  category    String
+  subcategory String?
+
+  unit        String
+
+  price       Float?  @default(0)
+
+  currency    String  @default("INR")
+
+  isAvailable Boolean @default(true)
+
+  dietaryTags String[]
+  allergens   String[]
+
+  defaultQty  Int      @default(1)
+
+  isFavorite  Boolean  @default(false)
+
+  notes       String?
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
