@@ -1,22 +1,57 @@
+// middleware.ts
+
 import { auth } from "@/lib/auth";
 import { NextResponse } from "next/server";
 
 export default auth((req) => {
   const isLoggedIn = !!req.auth;
-  const isAuthPage = req.nextUrl.pathname.startsWith("/login");
 
+  const pathname = req.nextUrl.pathname;
+
+  const isAuthPage = pathname.startsWith("/login");
+
+  // Public routes
+  const publicRoutes = ["/"];
+
+  const isPublicRoute = publicRoutes.includes(pathname);
+
+  // Allow public routes
+  if (isPublicRoute) {
+    return NextResponse.next();
+  }
+
+  // Prevent logged user opening login page
+  if (isAuthPage && isLoggedIn) {
+    return NextResponse.redirect(
+      new URL("/dashboard", req.nextUrl),
+    );
+  }
+
+  // Allow login page
   if (isAuthPage) {
-    if (isLoggedIn) {
-      return NextResponse.redirect(new URL("/dashboard", req.nextUrl));
-    }
-    return null;
+    return NextResponse.next();
   }
 
+  // Protect private pages
   if (!isLoggedIn) {
-    return NextResponse.redirect(new URL("/login", req.nextUrl));
+    return NextResponse.redirect(
+      new URL("/login", req.nextUrl),
+    );
   }
+
+  return NextResponse.next();
 });
 
 export const config = {
-  matcher: ["/((?!api|_next/static|_next/image|favicon.ico).*)"],
+  matcher: [
+    "/dashboard/:path*",
+    "/vendors/:path*",
+    "/approvals/:path*",
+    "/tracking/:path*",
+    "/inventory/:path*",
+    "/reports/:path*",
+    "/settings/:path*",
+    "/users/:path*",
+    "/flights/:path*",
+  ],
 };

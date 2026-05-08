@@ -23,7 +23,7 @@ export default async function EditFlightPage({
 }: PageProps) {
   const session = await auth();
   const isReviewMode = searchParams.mode === "review";
-  if (!session) {
+  if (!session?.user) {
     redirect("/login");
   }
 

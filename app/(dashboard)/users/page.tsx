@@ -11,7 +11,7 @@ import UsersClient from "./users-client";
 export default async function UsersPage() {
   const session = await auth();
 
-  if (!session) {
+  if (!session?.user) {
     redirect("/login");
   }
 

@@ -22,7 +22,7 @@ import { Badge } from "@/components/ui/badge";
 export default async function DashboardPage() {
   const session = await auth();
 
-  if (!session) {
+  if (!session?.user) {
     redirect("/login");
   }
 

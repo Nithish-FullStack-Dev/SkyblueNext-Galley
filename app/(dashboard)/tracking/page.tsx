@@ -8,7 +8,7 @@ import TrackingClient from "./tracking-client";
 export default async function TrackingPage() {
   const session = await auth();
 
-  if (!session) {
+  if (!session?.user) {
     redirect("/login");
   }
 
