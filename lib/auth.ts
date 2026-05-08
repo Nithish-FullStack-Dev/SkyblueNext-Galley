@@ -145,5 +145,5 @@ export const {
 
   trustHost: true,
 
-  secret: process.env.AUTH_SECRET,
+  secret: process.env.NEXTAUTH_SECRET,
 });
