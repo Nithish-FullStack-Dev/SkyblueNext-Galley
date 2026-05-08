@@ -5,7 +5,6 @@ import { redirect } from "next/navigation";
 import prisma from "@/lib/prisma";
 import TrackingClient from "./tracking-client";
 
-
 export default async function TrackingPage() {
   const session = await auth();
 
@@ -22,9 +21,32 @@ export default async function TrackingPage() {
 
     include: {
       vendor: true,
-      creator: true,
-      approver: true,
-      items: true,
+
+      creator: {
+        select: {
+          name: true,
+        },
+      },
+
+      approver: {
+        select: {
+          name: true,
+          role: true,
+        },
+      },
+
+      rejector: {
+        select: {
+          name: true,
+          role: true,
+        },
+      },
+
+      items: {
+        include: {
+          vendor: true,
+        },
+      },
     },
 
     orderBy: {

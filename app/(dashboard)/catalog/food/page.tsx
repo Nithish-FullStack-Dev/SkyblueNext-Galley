@@ -228,7 +228,7 @@ export default function FoodCatalog() {
               });
               setIsModalOpen(true);
             }}
-            className="flex-1 sm:flex-none bg-slate-900 text-white px-4 py-2 rounded-md hover:bg-slate-800 flex items-center justify-center gap-2 text-sm"
+            className="flex-1 sm:flex-none bg-[#1868A5] text-white px-4 py-2 rounded-md  flex items-center justify-center gap-2 text-sm"
           >
             <Plus className="w-4 h-4" /> Add Item
           </button>
@@ -236,7 +236,8 @@ export default function FoodCatalog() {
       </div>
 
       {/* Table/Content */}
-      <div className="bg-white rounded-lg shadow-sm border border-slate-200 overflow-hidden">
+      <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+        {/* Search + Categories */}
         <div className="p-4 border-b border-slate-200 flex flex-col sm:flex-row gap-4 items-start sm:items-center">
           <div className="relative w-full sm:flex-1 sm:max-w-md">
             <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
@@ -245,15 +246,20 @@ export default function FoodCatalog() {
               placeholder="Search items..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-3 py-2 border border-slate-300 rounded-md text-sm outline-none focus:ring-2 focus:ring-slate-200"
+              className="w-full pl-10 pr-3 py-3 border border-slate-300 rounded-xl text-sm outline-none focus:ring-2 focus:ring-slate-200"
             />
           </div>
-          <div className="flex flex-wrap gap-2">
+
+          <div className="flex flex-wrap gap-2 w-full sm:w-auto">
             {categories.map((cat) => (
               <button
                 key={cat}
                 onClick={() => setActiveCategory(cat)}
-                className={`px-3 py-1.5 text-[10px] sm:text-xs font-medium rounded-md transition-colors ${cat === activeCategory ? "bg-slate-900 text-white" : "bg-slate-100 text-slate-600 hover:bg-slate-200"}`}
+                className={`px-4 py-2 text-xs font-medium rounded-xl transition-colors whitespace-nowrap ${
+                  cat === activeCategory
+                    ? "bg-[#1868A5] text-white"
+                    : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                }`}
               >
                 {cat}
               </button>
@@ -261,6 +267,7 @@ export default function FoodCatalog() {
           </div>
         </div>
 
+        {/* Items List */}
         <div className="divide-y divide-slate-100">
           {loading ? (
             <div className="p-8 text-center text-slate-500">
@@ -270,116 +277,86 @@ export default function FoodCatalog() {
             filteredItems.map((item) => (
               <div
                 key={item.id}
-                className="p-4 flex items-center justify-between hover:bg-slate-50 transition-colors"
+                className="p-4 hover:bg-slate-50 transition-colors flex flex-col sm:flex-row sm:items-center gap-4"
               >
-                <div className="flex items-center gap-4 min-w-0">
+                {/* Left Section */}
+                <div className="flex items-center gap-4 flex-1 min-w-0">
                   <button
                     onClick={() => toggleFavorite(item)}
                     className={`p-1 transition-colors ${item.isFavorite ? "text-orange-400" : "text-slate-300 hover:text-slate-400"}`}
                   >
                     <Star
-                      className="w-5 h-5"
+                      className="w-6 h-6"
                       fill={item.isFavorite ? "currentColor" : "none"}
                     />
                   </button>
-                  <div className="min-w-0">
-                    <h3 className="font-medium text-slate-900 text-sm sm:text-base">
+
+                  <div className="min-w-0 flex-1">
+                    <h3 className="font-semibold text-slate-900 text-base sm:text-lg leading-tight">
                       {item?.name}
                     </h3>
-                    <p className="text-xs text-slate-500">
+                    <p className="text-xs text-slate-500 mt-1">
                       {item?.category} • {item?.defaultQty} {item?.unit}
                     </p>
                   </div>
                 </div>
-                <div className="flex items-center gap-3 shrink-0">
-                  {/* PRICE */}
-                  <div className="min-w-[90px] text-right">
-                    <p className="text-sm font-semibold text-slate-700 whitespace-nowrap">
+
+                {/* Right Section - Price + Actions */}
+                <div className="flex items-center justify-between sm:justify-end gap-4 w-full sm:w-auto">
+                  {/* Price */}
+                  <div className="text-right">
+                    <p className="text-lg font-bold text-slate-800 whitespace-nowrap">
                       {item?.currency} {item?.price}
                     </p>
                   </div>
 
-                  {/* ENABLE / DISABLE */}
-                  <button
-                    onClick={async () => {
-                      const updated = {
-                        ...item,
-                        isAvailable: item.isAvailable === false ? true : false,
-                      };
+                  {/* Actions */}
+                  <div className="flex items-center gap-2">
+                    {/* Enable / Disable */}
+                    <button
+                      onClick={async () => {
+                        const updated = {
+                          ...item,
+                          isAvailable:
+                            item.isAvailable === false ? true : false,
+                        };
+                        setItems((prev) =>
+                          prev.map((i) => (i.id === item.id ? updated : i)),
+                        );
+                        await fetch("/api/catalog", {
+                          method: "POST",
+                          headers: { "Content-Type": "application/json" },
+                          body: JSON.stringify(updated),
+                        });
+                      }}
+                      className={`h-9 px-5 rounded-full text-xs font-semibold transition-all whitespace-nowrap ${
+                        item.isAvailable !== false
+                          ? "bg-red-50 text-red-600 hover:bg-red-100"
+                          : "bg-emerald-50 text-emerald-600 hover:bg-emerald-100"
+                      }`}
+                    >
+                      {item.isAvailable !== false ? "Disable" : "Enable"}
+                    </button>
 
-                      setItems((prev) =>
-                        prev.map((i) => (i.id === item.id ? updated : i)),
-                      );
+                    {/* Edit */}
+                    <button
+                      onClick={() => {
+                        setNewItem(item);
+                        setIsModalOpen(true);
+                      }}
+                      className="h-9 w-9 rounded-xl flex items-center justify-center text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition-all"
+                    >
+                      <Edit2 className="w-4 h-4" />
+                    </button>
 
-                      await fetch("/api/catalog", {
-                        method: "POST",
-                        headers: {
-                          "Content-Type": "application/json",
-                        },
-                        body: JSON.stringify(updated),
-                      });
-                    }}
-                    className={`
-      h-9
-      min-w-[88px]
-      rounded-full
-      px-4
-      text-xs
-      font-semibold
-      transition-all
-      flex
-      items-center
-      justify-center
-      ${
-        item.isAvailable !== false
-          ? "bg-red-50 text-red-600 hover:bg-red-100"
-          : "bg-emerald-50 text-emerald-600 hover:bg-emerald-100"
-      }
-    `}
-                  >
-                    {item.isAvailable !== false ? "Disable" : "Enable"}
-                  </button>
-
-                  {/* EDIT */}
-                  <button
-                    onClick={() => {
-                      setNewItem(item);
-                      setIsModalOpen(true);
-                    }}
-                    className="
-      h-9
-      w-9
-      rounded-xl
-      flex
-      items-center
-      justify-center
-      text-slate-400
-      hover:text-blue-600
-      hover:bg-blue-50
-      transition-all
-    "
-                  >
-                    <Edit2 className="w-4 h-4" />
-                  </button>
-
-                  {/* DELETE */}
-                  <button
-                    onClick={() => setItemToDelete(item)}
-                    className="
-      h-9
-      w-9
-      rounded-xl
-      flex
-      items-center
-      justify-center
-      text-slate-400
-      hover:text-red-600
-      hover:bg-red-50
-      transition-all
-    "
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
+                    {/* Delete */}
+                    <button
+                      onClick={() => setItemToDelete(item)}
+                      className="h-9 w-9 rounded-xl flex items-center justify-center text-slate-400 hover:text-red-600 hover:bg-red-50 transition-all"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
                 </div>
               </div>
             ))
@@ -397,7 +374,7 @@ export default function FoodCatalog() {
               </h2>
               <button
                 onClick={() => setIsModalOpen(false)}
-                className="text-slate-400 hover:text-slate-600 p-2"
+                className="text-black hover:text-white hover:bg-[#1868A5] hover:rotate-180 transition-all duration-300 p-2 rounded-xl"
               >
                 <X className="w-6 h-6" />
               </button>
@@ -498,6 +475,7 @@ export default function FoodCatalog() {
 
                     <input
                       type="number"
+                      min={0}
                       value={newItem.price || 0}
                       onChange={(e) =>
                         setNewItem({
@@ -608,7 +586,7 @@ export default function FoodCatalog() {
               </button>
               <button
                 onClick={handleSaveItem}
-                className="w-full sm:w-auto px-4 py-2 bg-slate-900 text-white rounded-md hover:bg-slate-800 text-sm font-medium transition-colors"
+                className="w-full sm:w-auto px-4 py-2 bg-[#1868A5] text-white rounded-md text-sm font-medium transition-colors"
               >
                 {newItem.id ? "Save Changes" : "Add Item"}
               </button>

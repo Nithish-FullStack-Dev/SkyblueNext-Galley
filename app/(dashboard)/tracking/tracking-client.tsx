@@ -45,6 +45,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { toast } from "@/components/ui/use-toast";
 
 interface Order {
   id: string;
@@ -83,8 +84,13 @@ interface Order {
 
   approver?: {
     name: string;
+    role: string;
   } | null;
 
+  rejector?: {
+    name: string;
+    role: string;
+  } | null;
   items: {
     id: string;
   }[];
@@ -162,7 +168,11 @@ export default function TrackingClient({ orders }: Props) {
         flightDate < new Date() &&
         !["Cancelled", "Rejected"].includes(status)
       ) {
-        alert("Flight departure time already passed.");
+        toast({
+          title: "Flight Expired",
+          description: "This flight departure time has already passed.",
+          variant: "destructive",
+        });
 
         return;
       }
@@ -248,27 +258,64 @@ export default function TrackingClient({ orders }: Props) {
         {/* SEARCH + FILTER */}
 
         <div className="space-y-5">
-          <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4">
-            <div className="relative w-full xl:max-w-md">
+          {/* TOP BAR */}
+          <div
+            className="
+      flex
+      flex-col
+      lg:flex-row
+      lg:items-center
+      justify-between
+      gap-4
+    "
+          >
+            {/* SEARCH */}
+            <div className="relative w-full lg:max-w-md">
               <Input
                 placeholder="Search flight, route..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 className="
-                  h-12
-                  rounded-2xl
-                  border-slate-200
-                  bg-white
-                "
+          h-12
+          rounded-2xl
+          border-slate-200
+          bg-white
+          pr-4
+          focus-visible:ring-[#1868A5]
+          focus-visible:border-[#1868A5]
+        "
               />
             </div>
 
-            <div className="flex items-center gap-2 text-sm text-slate-500">
-              <Filter className="w-4 h-4" />
+            {/* FILTER INFO */}
+            <div
+              className="
+        flex
+        items-center
+        justify-center
+        lg:justify-end
+        gap-2
+
+        rounded-2xl
+        bg-[#1868A5]/5
+        border
+        border-[#1868A5]/10
+
+        px-4
+        py-3
+
+        text-sm
+        text-slate-600
+
+        w-full
+        lg:w-auto
+      "
+            >
+              <Filter className="w-4 h-4 text-[#1868A5]" />
 
               <span>
                 Showing{" "}
-                <span className="font-semibold text-slate-900">
+                <span className="font-bold text-[#1868A5]">
                   {filteredOrders.length}
                 </span>{" "}
                 flights
@@ -278,8 +325,24 @@ export default function TrackingClient({ orders }: Props) {
 
           {/* TABS */}
 
-          <div className="overflow-x-auto scrollbar-hide">
-            <div className="flex gap-3 min-w-max pb-1">
+          <div
+            className="
+      relative
+      overflow-x-auto
+      scrollbar-hide
+      -mx-1
+      px-1
+    "
+          >
+            <div
+              className="
+        flex
+        items-center
+        gap-3
+        min-w-max
+        pb-2
+      "
+            >
               {tabs.map((tab) => {
                 const active = activeTab === tab;
 
@@ -294,18 +357,31 @@ export default function TrackingClient({ orders }: Props) {
                     onClick={() => setActiveTab(tab)}
                     className={cn(
                       `
-                      h-11
-                      px-5
-                      rounded-2xl
-                      border
-                      text-sm
-                      font-semibold
-                      whitespace-nowrap
-                      transition-all
-                    `,
+                h-11
+                px-5
+                rounded-2xl
+                border
+                text-sm
+                font-semibold
+                whitespace-nowrap
+                transition-all
+                shrink-0
+              `,
                       active
-                        ? "bg-primary text-white border-primary shadow-md"
-                        : "bg-white text-slate-600 border-slate-200 hover:bg-slate-50",
+                        ? `
+                  bg-[#1868A5]
+                  text-white
+                  border-[#1868A5]
+                  shadow-md
+                `
+                        : `
+                  bg-white
+                  text-slate-600
+                  border-slate-200
+                  hover:border-[#1868A5]/30
+                  hover:text-[#1868A5]
+                  hover:bg-[#1868A5]/5
+                `,
                     )}
                   >
                     {tab}
@@ -313,12 +389,13 @@ export default function TrackingClient({ orders }: Props) {
                     <span
                       className={cn(
                         `
-                        ml-2
-                        px-2
-                        py-0.5
-                        rounded-full
-                        text-xs
-                      `,
+                  ml-2
+                  px-2
+                  py-0.5
+                  rounded-full
+                  text-[11px]
+                  font-bold
+                `,
                         active
                           ? "bg-white/20 text-white"
                           : "bg-slate-100 text-slate-500",
@@ -417,10 +494,28 @@ export default function TrackingClient({ orders }: Props) {
                       </div>
                     )}
 
-                    <div className="flex flex-col 2xl:flex-row gap-8 justify-between">
+                    <div
+                      className="
+    flex
+    flex-col
+    xl:flex-row
+    gap-6
+    xl:gap-8
+    justify-between
+  "
+                    >
                       {/* LEFT */}
 
-                      <div className="flex gap-5 min-w-0 flex-1">
+                      <div
+                        className="
+    flex
+    flex-col
+    sm:flex-row
+    gap-5
+    min-w-0
+    flex-1
+  "
+                      >
                         {/* ICON */}
 
                         <div
@@ -443,14 +538,25 @@ export default function TrackingClient({ orders }: Props) {
                         <div className="min-w-0 flex-1">
                           {/* HEADER */}
 
-                          <div className="flex flex-wrap items-center gap-3">
+                          <div
+                            className="
+    flex
+    flex-col
+    sm:flex-row
+    sm:items-center
+    gap-3
+    min-w-0
+  "
+                          >
                             <h2
                               className="
-            text-2xl
-            font-bold
-            tracking-tight
-            text-slate-900
-          "
+    text-xl
+    sm:text-2xl
+    font-bold
+    tracking-tight
+    text-slate-900
+    break-all
+  "
                             >
                               {order.flightNumber}
                             </h2>
@@ -504,25 +610,29 @@ export default function TrackingClient({ orders }: Props) {
 
                           <div
                             className="
-          mt-6
-          grid
-          grid-cols-1
-          sm:grid-cols-2
-          xl:grid-cols-4
-          gap-5
-        "
+                          mt-6
+                          grid
+                        grid-cols-1
+                        sm:grid-cols-2
+                        xl:grid-cols-4
+                          gap-5
+                        "
                           >
-                            <div>
+                            {/* ITEMS */}
+
+                            <div className="min-w-0">
                               <p className="text-[11px] uppercase tracking-wider font-semibold text-slate-400">
                                 Items
                               </p>
 
-                              <p className="mt-1 text-sm font-semibold text-slate-900">
+                              <p className="mt-1 text-sm sm:text-base font-bold text-slate-900">
                                 {order.items?.length}
                               </p>
                             </div>
 
-                            <div>
+                            {/* VENDORS */}
+
+                            <div className="min-w-0">
                               <p className="text-[11px] uppercase tracking-wider font-semibold text-slate-400">
                                 Vendor
                               </p>
@@ -552,18 +662,21 @@ export default function TrackingClient({ orders }: Props) {
                                     <span
                                       key={vendor}
                                       className="
-            inline-flex
-            items-center
-            rounded-full
-            px-3
-            py-1
-            text-[11px]
-            font-semibold
-            bg-emerald-50
-            text-emerald-700
-            border
-            border-emerald-200
-          "
+              inline-flex
+              items-center
+              rounded-full
+              px-3
+              py-1
+              text-[11px]
+              font-semibold
+              bg-emerald-50
+              text-emerald-700
+              border
+              border-emerald-200
+              break-words
+max-w-full
+text-center
+            "
                                     >
                                       {vendor}
                                     </span>
@@ -576,12 +689,14 @@ export default function TrackingClient({ orders }: Props) {
                               </div>
                             </div>
 
-                            <div>
+                            {/* SUBMITTED */}
+
+                            <div className="min-w-0">
                               <p className="text-[11px] uppercase tracking-wider font-semibold text-slate-400">
                                 Submitted
                               </p>
 
-                              <p className="mt-1 text-sm font-semibold text-slate-900">
+                              <p className="mt-1 text-sm sm:text-base font-bold text-slate-900">
                                 {format(
                                   new Date(order.createdAt),
                                   "MMM dd, yyyy",
@@ -589,14 +704,72 @@ export default function TrackingClient({ orders }: Props) {
                               </p>
                             </div>
 
-                            <div>
+                            {/* APPROVED / REJECTED */}
+
+                            <div className="min-w-0">
                               <p className="text-[11px] uppercase tracking-wider font-semibold text-slate-400">
-                                Approved By
+                                {order.status === "Rejected"
+                                  ? "Rejected By"
+                                  : "Approved By"}
                               </p>
 
-                              <p className="mt-1 text-sm font-semibold text-slate-900">
-                                {order.approver?.name || "-"}
-                              </p>
+                              <div className="mt-1">
+                                {order.status === "Rejected" ? (
+                                  order.rejector ? (
+                                    <div className="space-y-1">
+                                      <p className="text-sm sm:text-base font-bold text-slate-900">
+                                        {order.rejector.name}
+                                      </p>
+
+                                      <span
+                                        className="
+                inline-flex
+                items-center
+                rounded-full
+                px-2.5
+                py-1
+                text-[10px]
+                font-semibold
+                bg-red-100
+                text-red-700
+              "
+                                      >
+                                        {order.rejector.role}
+                                      </span>
+                                    </div>
+                                  ) : (
+                                    <p className="text-sm font-semibold text-slate-900">
+                                      -
+                                    </p>
+                                  )
+                                ) : order.approver ? (
+                                  <div className="space-y-1">
+                                    <p className="text-sm sm:text-base font-bold text-slate-900">
+                                      {order.approver.name}
+                                    </p>
+
+                                    <span
+                                      className="
+              inline-flex
+              items-center
+              rounded-full
+              px-2.5
+              py-1
+              text-[10px]
+              font-semibold
+              bg-[#1868A5]/10
+              text-[#1868A5]
+            "
+                                    >
+                                      {order.approver.role}
+                                    </span>
+                                  </div>
+                                ) : (
+                                  <p className="text-sm font-semibold text-slate-900">
+                                    -
+                                  </p>
+                                )}
+                              </div>
                             </div>
                           </div>
                         </div>
@@ -607,7 +780,7 @@ export default function TrackingClient({ orders }: Props) {
                       <div
                         className="
       w-full
-      2xl:w-[360px]
+     xl:w-[320px]
       shrink-0
       flex
       flex-col
@@ -675,7 +848,8 @@ export default function TrackingClient({ orders }: Props) {
                         <div
                           className="
         grid
-        grid-cols-2
+   grid-cols-1
+sm:grid-cols-2
         gap-3
       "
                         >
@@ -713,7 +887,7 @@ export default function TrackingClient({ orders }: Props) {
                             </Button>
                           </Link>
 
-                          <div className="col-span-2">
+                          <div className="sm:col-span-2">
                             <DownloadPDFButton order={order} />
                           </div>
 

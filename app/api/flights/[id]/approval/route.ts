@@ -65,13 +65,23 @@ export async function PATCH(
                         : null,
 
                 rejectionReason:
-                    action === "approve"
-                        ? null
-                        : rejectionReason || null,
+                    action === "reject"
+                        ? rejectionReason || null
+                        : null,
 
                 approvedBy:
                     action === "approve"
                         ? session.user.id
+                        : null,
+
+                rejectedBy:
+                    action === "reject"
+                        ? session.user.id
+                        : null,
+
+                rejectedAt:
+                    action === "reject"
+                        ? new Date()
                         : null,
             },
         });

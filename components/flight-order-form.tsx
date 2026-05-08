@@ -357,7 +357,7 @@ export default function FlightOrderForm({
                   }),
                 )}
                 disabled={loading}
-                className="rounded-2xl"
+                className="rounded-2xl bg-[#1868A5] text-white hover:bg-[#1868A5] hover:text-white"
               >
                 <Send className="mr-2 h-4 w-4" />
                 Submit
@@ -500,7 +500,7 @@ export default function FlightOrderForm({
                           transition-all
                           ${
                             active
-                              ? "bg-slate-900 text-white border-slate-900"
+                              ? "bg-[#1868A5] text-white border-[#1868A5]"
                               : "bg-white border-slate-200 text-slate-700 hover:bg-slate-100"
                           }
                         `}
@@ -512,9 +512,7 @@ export default function FlightOrderForm({
               </div>
             </CardContent>
           </Card>
-
           {/* ORDER ITEMS */}
-
           <Card className="rounded-3xl border-none shadow-sm overflow-hidden">
             <CardHeader className="border-b bg-slate-50/60 flex flex-row items-center justify-between">
               <div>
@@ -522,7 +520,6 @@ export default function FlightOrderForm({
                   <Utensils className="h-5 w-5" />
                   Order Items
                 </CardTitle>
-
                 <CardDescription>Add vendor or catalog items</CardDescription>
               </div>
 
@@ -545,50 +542,48 @@ export default function FlightOrderForm({
               </Button>
             </CardHeader>
 
-            <CardContent className="p-0 overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="pl-8">Item</TableHead>
+            <CardContent className="p-0">
+              {/* Mobile: Card Layout | Desktop: Table */}
+              <div className="hidden md:block overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="pl-8">Item</TableHead>
+                      <TableHead>Qty</TableHead>
+                      <TableHead>Vendor</TableHead>
+                      <TableHead>Notes</TableHead>
+                      <TableHead>Total</TableHead>
+                      <TableHead className="w-14"></TableHead>
+                    </TableRow>
+                  </TableHeader>
 
-                    <TableHead>Qty</TableHead>
+                  <TableBody>
+                    {watchItems.map((field: any, index: number) => {
+                      const itemTotal =
+                        (Number(field.price) || 0) *
+                        (Number(watch(`items.${index}.quantity`)) || 0);
 
-                    <TableHead>Vendor</TableHead>
+                      return (
+                        <TableRow key={field.id || index}>
+                          <TableCell className="pl-8">
+                            <Input
+                              {...register(`items.${index}.name`)}
+                              className="rounded-xl"
+                            />
+                          </TableCell>
 
-                    <TableHead>Notes</TableHead>
+                          <TableCell>
+                            <Input
+                              type="number"
+                              {...register(`items.${index}.quantity`)}
+                              className="w-20 rounded-xl"
+                            />
+                          </TableCell>
 
-                    <TableHead>Total</TableHead>
-                    <TableHead className="w-14"></TableHead>
-                  </TableRow>
-                </TableHeader>
-
-                <TableBody>
-                  {watchItems.map((field: any, index: number) => {
-                    const itemTotal =
-                      (Number(field.price) || 0) *
-                      (Number(watch(`items.${index}.quantity`)) || 0);
-
-                    return (
-                      <TableRow key={field.id || index}>
-                        <TableCell className="pl-8">
-                          <Input
-                            {...register(`items.${index}.name`)}
-                            className="rounded-xl"
-                          />
-                        </TableCell>
-
-                        <TableCell>
-                          <Input
-                            type="number"
-                            {...register(`items.${index}.quantity`)}
-                            className="w-20 rounded-xl"
-                          />
-                        </TableCell>
-
-                        <TableCell>
-                          {field.vendorId ? (
-                            <div
-                              className="
+                          <TableCell>
+                            {field.vendorId ? (
+                              <div
+                                className="
         inline-flex
         items-center
         rounded-xl
@@ -601,16 +596,16 @@ export default function FlightOrderForm({
         font-semibold
         text-emerald-700
       "
-                            >
-                              {field.vendor?.name ||
-                                field.vendorName ||
-                                vendors.find((v) => v.id === field.vendorId)
-                                  ?.name ||
-                                "Vendor"}
-                            </div>
-                          ) : (
-                            <div
-                              className="
+                              >
+                                {field.vendor?.name ||
+                                  field.vendorName ||
+                                  vendors.find((v) => v.id === field.vendorId)
+                                    ?.name ||
+                                  "Vendor"}
+                              </div>
+                            ) : (
+                              <div
+                                className="
         inline-flex
         items-center
         rounded-xl
@@ -623,50 +618,129 @@ export default function FlightOrderForm({
         font-semibold
         text-slate-600
       "
+                              >
+                                Global Catalog
+                              </div>
+                            )}
+                          </TableCell>
+
+                          <TableCell>
+                            <Input
+                              {...register(`items.${index}.notes`)}
+                              className="rounded-xl"
+                            />
+                          </TableCell>
+
+                          <TableCell className="font-semibold text-slate-700">
+                            ₹{itemTotal.toLocaleString()}
+                          </TableCell>
+
+                          <TableCell>
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              type="button"
+                              onClick={() => remove(index)}
+                              className="text-red-500 hover:bg-red-50"
                             >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+
+                    {!fields.length && (
+                      <TableRow>
+                        <TableCell
+                          colSpan={6}
+                          className="h-32 text-center text-slate-400"
+                        >
+                          No items added yet
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
+
+              {/* Mobile Card Layout */}
+              <div className="md:hidden divide-y">
+                {watchItems.map((field: any, index: number) => {
+                  const itemTotal =
+                    (Number(field.price) || 0) *
+                    (Number(watch(`items.${index}.quantity`)) || 0);
+
+                  return (
+                    <div
+                      key={field.id || index}
+                      className="p-5 bg-white hover:bg-slate-50 transition-colors"
+                    >
+                      <div className="flex justify-between items-start mb-4">
+                        <div className="flex-1">
+                          <Input
+                            {...register(`items.${index}.name`)}
+                            className="rounded-xl mb-3"
+                            placeholder="Item name"
+                          />
+                          <div className="flex items-center gap-3">
+                            <div className="w-20">
+                              <Input
+                                type="number"
+                                {...register(`items.${index}.quantity`)}
+                                className="rounded-xl text-center"
+                              />
+                            </div>
+                            <span className="text-slate-400 text-sm">×</span>
+                            <div className="font-semibold text-lg text-slate-800">
+                              ₹{itemTotal.toLocaleString()}
+                            </div>
+                          </div>
+                        </div>
+
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          type="button"
+                          onClick={() => remove(index)}
+                          className="text-red-500 -mt-1 -mr-1"
+                        >
+                          <Trash2 className="h-5 w-5" />
+                        </Button>
+                      </div>
+
+                      {/* Vendor & Notes */}
+                      <div className="space-y-3">
+                        <div>
+                          {field.vendorId ? (
+                            <div className="inline-flex items-center rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-700">
+                              {field.vendor?.name ||
+                                field.vendorName ||
+                                "Vendor"}
+                            </div>
+                          ) : (
+                            <div className="inline-flex items-center rounded-xl border border-slate-200 bg-slate-100 px-3 py-2 text-xs font-semibold text-slate-600">
                               Global Catalog
                             </div>
                           )}
-                        </TableCell>
+                        </div>
 
-                        <TableCell>
-                          <Input
-                            {...register(`items.${index}.notes`)}
-                            className="rounded-xl"
-                          />
-                        </TableCell>
+                        <Input
+                          {...register(`items.${index}.notes`)}
+                          className="rounded-xl"
+                          placeholder="Add notes..."
+                        />
+                      </div>
+                    </div>
+                  );
+                })}
 
-                        <TableCell className="font-semibold text-slate-700">
-                          ₹{itemTotal.toLocaleString()}
-                        </TableCell>
-
-                        <TableCell>
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            type="button"
-                            onClick={() => remove(index)}
-                            className="text-red-500"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
-
-                  {!fields.length && (
-                    <TableRow>
-                      <TableCell
-                        colSpan={6}
-                        className="h-32 text-center text-slate-400"
-                      >
-                        No items added yet
-                      </TableCell>
-                    </TableRow>
-                  )}
-                </TableBody>
-              </Table>
+                {!fields.length && (
+                  <div className="p-12 text-center text-slate-400">
+                    No items added yet
+                  </div>
+                )}
+              </div>
             </CardContent>
           </Card>
           <Card className="rounded-3xl border-none shadow-sm">
@@ -713,14 +787,14 @@ export default function FlightOrderForm({
           items-center
           justify-between
           rounded-2xl
-          bg-slate-900
+          bg-[#1868A5]
+          text-white
           px-5
           py-5
-          text-white
         "
                 >
                   <div>
-                    <p className="text-lg font-bold">Grand Total</p>
+                    <p className="text-lg font-bold text-white">Grand Total</p>
 
                     <p className="text-xs text-slate-300">
                       All vendors + global items
@@ -742,7 +816,7 @@ export default function FlightOrderForm({
           <Card className="sticky top-6 overflow-hidden rounded-[28px] border border-slate-200/60 bg-white shadow-sm">
             {/* HEADER */}
 
-            <CardHeader className="border-b border-slate-100 bg-gradient-to-br from-slate-900 to-slate-800 text-white">
+            <CardHeader className="border-b border-slate-100 bg-[#1868A5] text-white">
               <div className="flex items-start justify-between gap-4">
                 <div>
                   <CardTitle className="text-xl font-bold tracking-tight">

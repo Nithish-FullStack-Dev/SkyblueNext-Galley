@@ -169,21 +169,82 @@ export default function VendorMenuPage() {
         <ArrowLeft className="w-4 h-4" /> Back to Partners
       </button>
 
-      <div className="flex justify-between items-end mb-8">
-        <div>
-          <h1 className="text-3xl font-black text-slate-900">{vendor?.name}</h1>
-          <p className="text-slate-500">Manage pricing and menu items</p>
+      <div
+        className="
+    flex
+    flex-col
+    sm:flex-row
+    sm:items-end
+    sm:justify-between
+
+    gap-5
+
+    mb-8
+  "
+      >
+        {/* LEFT */}
+
+        <div className="min-w-0">
+          <h1
+            className="
+        text-2xl
+        sm:text-3xl
+
+        font-black
+        text-slate-900
+
+        break-words
+      "
+          >
+            {vendor?.name}
+          </h1>
+
+          <p className="text-slate-500 mt-1">Manage pricing and menu items</p>
         </div>
+
+        {/* RIGHT */}
+
         <button
           onClick={() => setIsModalOpen(true)}
-          className="bg-slate-900 text-white px-6 py-3 rounded-xl font-bold flex items-center gap-2"
+          className="
+      h-12
+
+      w-full
+      sm:w-auto
+
+      px-6
+
+      rounded-2xl
+
+      bg-[#1868A5]
+      text-white
+
+      hover:bg-[#145686]
+
+      transition-all
+      duration-200
+
+      shadow-sm
+      hover:shadow-md
+
+      font-semibold
+
+      flex
+      items-center
+      justify-center
+      gap-2
+
+      shrink-0
+    "
         >
-          <Plus className="w-5 h-5" /> Add Menu Item
+          <Plus className="w-5 h-5 shrink-0" />
+
+          <span>Add Menu Item</span>
         </button>
       </div>
 
       {/* Main Table */}
-      <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
+      <div className="bg-white rounded-3xl border border-slate-200 overflow-hidden shadow-sm">
         <div className="p-4 bg-slate-50 border-b">
           <div className="relative max-w-md">
             <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
@@ -192,7 +253,29 @@ export default function VendorMenuPage() {
               placeholder="Search menu..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border rounded-lg text-sm"
+              className="
+  w-full
+  h-11
+
+  rounded-2xl
+  border
+  border-slate-200
+
+  bg-white
+
+  pl-10
+  pr-4
+
+  text-sm
+
+  outline-none
+
+  transition-all
+
+  focus-visible:border-[#1868A5]
+  focus-visible:ring-4
+  focus-visible:ring-[#1868A5]/10
+"
             />
           </div>
         </div>
@@ -200,7 +283,21 @@ export default function VendorMenuPage() {
           {filteredItems.map((item) => (
             <div
               key={item.id}
-              className="p-4 flex items-center justify-between hover:bg-slate-50"
+              className="
+  p-4
+  sm:p-5
+
+  flex
+  flex-col
+  lg:flex-row
+  lg:items-center
+  justify-between
+
+  gap-5
+
+  hover:bg-slate-50/80
+  transition-all
+"
             >
               <div className="flex items-center gap-4">
                 <div>
@@ -211,7 +308,7 @@ export default function VendorMenuPage() {
                 </div>
               </div>
               <div className="flex items-center gap-6">
-                <p className="font-black text-slate-900">
+                <p className="font-black text-[#1868A5] text-lg">
                   {item.price}{" "}
                   <span className="text-[10px] text-slate-400">
                     {item.currency}
@@ -249,13 +346,45 @@ export default function VendorMenuPage() {
                   </button>
                   <button
                     onClick={() => setEditingItem(item)}
-                    className="p-2 text-slate-300 hover:text-slate-600"
+                    className="
+  w-10
+  h-10
+
+  rounded-xl
+
+  text-slate-400
+
+  hover:bg-[#1868A5]/10
+  hover:text-[#1868A5]
+
+  transition-all
+
+  flex
+  items-center
+  justify-center
+"
                   >
                     <Edit2 className="w-4 h-4" />
                   </button>
                   <button
                     onClick={() => handleDelete(item.id)}
-                    className="p-2 text-slate-300 hover:text-red-500"
+                    className="
+  w-10
+  h-10
+
+  rounded-xl
+
+  text-slate-400
+
+  hover:bg-red-50
+  hover:text-red-600
+
+  transition-all
+
+  flex
+  items-center
+  justify-center
+"
                   >
                     <Trash2 className="w-4 h-4" />
                   </button>
@@ -269,7 +398,7 @@ export default function VendorMenuPage() {
       {/* EDIT MODAL */}
       {editingItem && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl p-6 w-full max-w-md shadow-2xl">
+          <div className=" bg-white rounded-3xl p-6 sm:p-8 w-full max-w-md shadow-2xl">
             <div className="flex justify-between items-center mb-6">
               <h3 className="text-xl font-bold">Edit {editingItem.name}</h3>
               <X
@@ -293,7 +422,21 @@ export default function VendorMenuPage() {
               </div>
               <button
                 onClick={handleEditSave}
-                className="w-full bg-slate-900 text-white p-3 rounded-xl font-bold"
+                className="
+  w-full
+  h-12
+
+  rounded-2xl
+
+  bg-[#1868A5]
+  text-white
+
+  hover:bg-[#145686]
+
+  transition-all
+
+  font-semibold
+"
               >
                 Update Item
               </button>
@@ -305,8 +448,27 @@ export default function VendorMenuPage() {
       {/* ADD MENU ITEM MODAL */}
       {isModalOpen && (
         <div className="fixed inset-0 bg-slate-900/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl shadow-2xl w-full max-w-5xl h-[85vh] flex overflow-hidden">
-            <div className="w-1/2 border-r border-slate-100 bg-slate-50 flex flex-col">
+          <div
+            className="
+  bg-white
+
+  rounded-3xl
+
+  shadow-2xl
+
+  w-full
+  max-w-6xl
+
+  h-[90vh]
+
+  flex
+  flex-col
+  lg:flex-row
+
+  overflow-hidden
+"
+          >
+            <div className="w-full lg:w-1/2 border-r border-slate-100 bg-slate-50 flex flex-col">
               <div className="p-6 border-b border-slate-200">
                 <h3 className="font-bold text-slate-900 mb-4 text-lg">
                   Add from Catalog
@@ -335,46 +497,390 @@ export default function VendorMenuPage() {
                 ))}
               </div>
             </div>
-            <div className="w-1/2 flex flex-col bg-white">
-              <div className="p-6 flex justify-between items-center border-b border-slate-50">
-                <h3 className="font-bold text-slate-900 text-lg">New Items</h3>
-                <button onClick={() => setIsModalOpen(false)}>
-                  <X className="w-5 h-5 text-slate-400" />
+            <div className="w-full lg:w-1/2 flex flex-col bg-white">
+              {/* HEADER */}
+
+              <div className="p-6 flex justify-between items-center border-b border-slate-100">
+                <div>
+                  <h3 className="font-bold text-slate-900 text-lg">
+                    New Items
+                  </h3>
+
+                  <p className="text-sm text-slate-500 mt-1">
+                    Configure vendor menu items
+                  </p>
+                </div>
+
+                <button
+                  onClick={() => setIsModalOpen(false)}
+                  className="
+        w-10
+        h-10
+
+        rounded-xl
+
+        text-black
+
+        hover:text-white
+        hover:bg-[#1868A5]
+        hover:rotate-180
+
+        transition-all
+        duration-300
+
+        flex
+        items-center
+        justify-center
+      "
+                >
+                  <X className="w-5 h-5" />
                 </button>
               </div>
-              <div className="flex-1 overflow-y-auto p-6 space-y-4">
+
+              {/* BODY */}
+
+              <div className="flex-1 overflow-y-auto p-6 space-y-5">
                 {draftItems.map((item, index) => (
                   <div
                     key={index}
-                    className="p-4 border rounded-xl bg-slate-50/50 relative"
+                    className="
+          rounded-3xl
+          border
+          border-slate-200
+          bg-slate-50/50
+
+          p-5
+          sm:p-6
+
+          space-y-5
+        "
                   >
-                    <input
-                      type="text"
-                      placeholder="Item Name"
-                      value={item.name}
-                      onChange={(e) =>
-                        updateDraftItem(index, { name: e.target.value })
-                      }
-                      className="w-full border p-2 rounded-lg mb-2"
-                    />
-                    <input
-                      type="number"
-                      placeholder="Price"
-                      value={item.price}
-                      onChange={(e) =>
-                        updateDraftItem(index, { price: e.target.value })
-                      }
-                      className="w-full border p-2 rounded-lg"
-                    />
+                    {/* TOP */}
+
+                    <div className="flex items-center justify-between gap-4">
+                      <h4 className="font-bold text-slate-900">
+                        Item #{index + 1}
+                      </h4>
+
+                      <button
+                        onClick={() => {
+                          setDraftItems(
+                            draftItems.filter((_, i) => i !== index),
+                          );
+                        }}
+                        className="
+              w-9
+              h-9
+
+              rounded-xl
+
+              bg-red-50
+              text-red-600
+
+              hover:bg-red-600
+              hover:text-white
+
+              transition-all
+
+              flex
+              items-center
+              justify-center
+            "
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+
+                    {/* NAME */}
+
+                    <div className="space-y-2">
+                      <label className="text-sm font-semibold text-slate-700">
+                        Item Name
+                      </label>
+
+                      <input
+                        type="text"
+                        placeholder="Chicken Sandwich"
+                        value={item.name}
+                        onChange={(e) =>
+                          updateDraftItem(index, {
+                            name: e.target.value,
+                          })
+                        }
+                        className="
+              w-full
+              h-11
+
+              rounded-2xl
+              border
+              border-slate-200
+
+              bg-white
+
+              px-4
+
+              text-sm
+
+              outline-none
+              transition-all
+
+              focus-visible:border-[#1868A5]
+              focus-visible:ring-4
+              focus-visible:ring-[#1868A5]/10
+            "
+                      />
+                    </div>
+
+                    {/* DESCRIPTION */}
+
+                    <div className="space-y-2">
+                      <label className="text-sm font-semibold text-slate-700">
+                        Description
+                      </label>
+
+                      <textarea
+                        placeholder="Freshly prepared onboard meal..."
+                        value={item.description}
+                        onChange={(e) =>
+                          updateDraftItem(index, {
+                            description: e.target.value,
+                          })
+                        }
+                        rows={3}
+                        className="
+              w-full
+
+              rounded-2xl
+              border
+              border-slate-200
+
+              bg-white
+
+              px-4
+              py-3
+
+              text-sm
+
+              resize-none
+
+              outline-none
+              transition-all
+
+              focus-visible:border-[#1868A5]
+              focus-visible:ring-4
+              focus-visible:ring-[#1868A5]/10
+            "
+                      />
+                    </div>
+
+                    {/* PRICE + CATEGORY */}
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      {/* PRICE */}
+
+                      <div className="space-y-2">
+                        <label className="text-sm font-semibold text-slate-700">
+                          Price
+                        </label>
+
+                        <input
+                          type="number"
+                          placeholder="0"
+                          min={0}
+                          value={item.price}
+                          onChange={(e) =>
+                            updateDraftItem(index, {
+                              price: Number(e.target.value),
+                            })
+                          }
+                          className="
+                w-full
+                h-11
+
+                rounded-2xl
+                border
+                border-slate-200
+
+                bg-white
+
+                px-4
+
+                text-sm
+
+                outline-none
+                transition-all
+
+                focus-visible:border-[#1868A5]
+                focus-visible:ring-4
+                focus-visible:ring-[#1868A5]/10
+              "
+                        />
+                      </div>
+
+                      {/* CATEGORY */}
+
+                      <div className="space-y-2">
+                        <label className="text-sm font-semibold text-slate-700">
+                          Category
+                        </label>
+
+                        <div className="relative">
+                          <select
+                            value={item.category}
+                            onChange={(e) =>
+                              updateDraftItem(index, {
+                                category: e.target.value,
+                              })
+                            }
+                            className="
+        w-full
+        h-11
+
+        appearance-none
+
+        rounded-2xl
+        border
+        border-slate-200
+
+        bg-white
+
+        px-4
+        pr-10
+
+        text-sm
+        font-medium
+        text-slate-900
+
+        outline-none
+        transition-all
+
+        hover:border-[#1868A5]/40
+
+        focus-visible:border-[#1868A5]
+        focus-visible:ring-4
+        focus-visible:ring-[#1868A5]/10
+      "
+                          >
+                            <option value="">Select Category</option>
+
+                            <option value="Beverages">Beverages</option>
+
+                            <option value="Breakfast">Breakfast</option>
+
+                            <option value="Main Course">Main Course</option>
+
+                            <option value="Desserts">Desserts</option>
+
+                            <option value="Snacks">Snacks</option>
+
+                            <option value="Bakery">Bakery</option>
+
+                            <option value="Healthy">Healthy</option>
+
+                            <option value="Kids Meal">Kids Meal</option>
+
+                            <option value="Special Meal">Special Meal</option>
+                          </select>
+
+                          {/* ICON */}
+
+                          <div
+                            className="
+        pointer-events-none
+        absolute
+        inset-y-0
+        right-4
+
+        flex
+        items-center
+
+        text-slate-400
+      "
+                          >
+                            <svg
+                              className="h-4 w-4"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth="2"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                d="M19 9l-7 7-7-7"
+                              />
+                            </svg>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 ))}
               </div>
-              <div className="p-6 border-t flex justify-end gap-4">
+
+              {/* FOOTER */}
+
+              <div className="p-6 border-t border-slate-100 flex flex-col sm:flex-row justify-end gap-4">
+                <button
+                  onClick={() =>
+                    setDraftItems([
+                      ...draftItems,
+                      {
+                        name: "",
+                        description: "",
+                        price: 0,
+                        category: "",
+                        dietaryTags: [],
+                        allergens: [],
+                        isAvailable: true,
+                      },
+                    ])
+                  }
+                  className="
+        h-12
+        px-6
+
+        rounded-2xl
+
+        border
+        border-slate-200
+
+        bg-white
+        text-slate-700
+
+        hover:border-[#1868A5]
+        hover:text-[#1868A5]
+
+        transition-all
+
+        font-semibold
+      "
+                >
+                  Add Another
+                </button>
+
                 <button
                   onClick={handleSaveAllItems}
-                  className="bg-slate-900 text-white px-8 py-3 rounded-xl font-bold"
+                  disabled={loading}
+                  className="
+        h-12
+        px-8
+
+        rounded-2xl
+
+        bg-[#1868A5]
+        text-white
+
+        hover:bg-[#145686]
+
+        transition-all
+
+        font-semibold
+
+        disabled:opacity-50
+      "
                 >
-                  Save All Items
+                  {loading ? "Saving..." : "Save All Items"}
                 </button>
               </div>
             </div>

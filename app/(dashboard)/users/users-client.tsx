@@ -2,7 +2,7 @@
 
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import axios from "axios";
 
@@ -57,36 +57,36 @@ export default function UsersClient({ users: initialUsers }: Props) {
   const [passwordUser, setPasswordUser] = useState<User | null>(null);
 
   const [newPassword, setNewPassword] = useState("");
-  const [rolePermissions, setRolePermissions] = useState({
-    admin: [
-      "view_dashboard",
-      "view_flights",
-      "view_catalog",
-      "view_vendors",
-      "view_approvals",
-      "view_tracking",
-      "view_users",
-      "view_settings",
-    ],
+  // const [rolePermissions, setRolePermissions] = useState({
+  //   admin: [
+  //     "view_dashboard",
+  //     "view_flights",
+  //     "view_catalog",
+  //     "view_vendors",
+  //     "view_approvals",
+  //     "view_tracking",
+  //     "view_users",
+  //     "view_settings",
+  //   ],
 
-    director: [
-      "view_dashboard",
-      "view_flights",
-      "view_tracking",
-      "view_approvals",
-    ],
+  //   director: [
+  //     "view_dashboard",
+  //     "view_flights",
+  //     "view_tracking",
+  //     "view_approvals",
+  //   ],
 
-    approver: [
-      "view_dashboard",
-      "view_flights",
-      "view_tracking",
-      "view_approvals",
-    ],
+  //   approver: [
+  //     "view_dashboard",
+  //     "view_flights",
+  //     "view_tracking",
+  //     "view_approvals",
+  //   ],
 
-    pilot: ["view_dashboard", "view_flights", "view_tracking"],
+  //   pilot: ["view_dashboard", "view_flights", "view_tracking"],
 
-    crew: ["view_dashboard", "view_flights", "view_catalog"],
-  });
+  //   crew: ["view_dashboard", "view_flights", "view_catalog"],
+  // });
   const availablePermissions = [
     {
       key: "view_dashboard",
@@ -248,7 +248,41 @@ export default function UsersClient({ users: initialUsers }: Props) {
         return "bg-orange-100 text-orange-700 border-orange-200";
     }
   };
+  const [rolePermissions, setRolePermissions] = useState<
+    Record<string, string[]>
+  >({});
 
+  const [permissionsLoading, setPermissionsLoading] = useState(true);
+
+  useEffect(() => {
+    fetchPermissions();
+  }, []);
+
+  const fetchPermissions = async () => {
+    try {
+      setPermissionsLoading(true);
+
+      const res = await axios.get("/api/permissions");
+
+      const formatted: Record<string, string[]> = {};
+
+      res.data.forEach((item: { role: string; permissions: string[] }) => {
+        formatted[item.role] = item.permissions || [];
+      });
+
+      setRolePermissions(formatted);
+    } catch (error) {
+      console.error(error);
+
+      toast({
+        title: "Error",
+        description: "Failed to load permissions.",
+        variant: "destructive",
+      });
+    } finally {
+      setPermissionsLoading(false);
+    }
+  };
   return (
     <>
       <div className="  w-full min-w-0 space-y-6 sm:space-y-8 overflow-hidden">
@@ -319,70 +353,68 @@ export default function UsersClient({ users: initialUsers }: Props) {
                 <div
                   key={user.id}
                   className="
-    p-4
-    sm:p-6
-
-    flex
-    flex-col
-    2xl:flex-row
-
-    gap-5
-
-    2xl:items-center
-    justify-between
-
-    hover:bg-slate-50/70
-    transition-colors
-  "
+        p-4
+        sm:p-6
+        flex
+        flex-col
+        xl:flex-row
+        xl:items-center
+        justify-between
+        gap-5
+        hover:bg-slate-50/70
+        transition-all
+      "
                 >
-                  {/* LEFT */}
-
+                  {/* LEFT SIDE */}
                   <div
                     className="
-      flex
-      flex-col
-      sm:flex-row
-
-      gap-4
-      sm:items-center
-
-      min-w-0
-      flex-1
-    "
+          flex
+          items-start
+          sm:items-center
+          gap-4
+          min-w-0
+          flex-1
+        "
                   >
+                    {/* AVATAR */}
                     <div
                       className="
-        w-14
-        h-14
-        rounded-2xl
-        bg-slate-100
-
-        flex
-        items-center
-        justify-center
-
-        text-slate-700
-        font-bold
-        text-lg
-
-        shrink-0
-      "
+            w-14
+            h-14
+            rounded-2xl
+            bg-[#1868A5]/10
+            text-[#1868A5]
+            flex
+            items-center
+            justify-center
+            font-bold
+            text-lg
+            shrink-0
+          "
                     >
-                      {user.name?.charAt(0)}
+                      {user.image ? (
+                        <img
+                          src={user.image}
+                          alt={user.name}
+                          className="w-full h-full rounded-2xl object-cover"
+                        />
+                      ) : (
+                        user.name?.charAt(0).toUpperCase()
+                      )}
                     </div>
 
+                    {/* INFO */}
                     <div className="min-w-0 flex-1">
                       <div
                         className="
-          flex
-          flex-col
-          sm:flex-row
-          sm:items-center
-
-          gap-3
-        "
+              flex
+              flex-col
+              sm:flex-row
+              sm:items-center
+              gap-2
+            "
                       >
-                        <h3 className="text-base font-bold text-slate-900 truncate">
+                        <h3 className="text-base sm:text-lg font-bold text-slate-900 truncate">
                           {user.name}
                         </h3>
 
@@ -390,15 +422,15 @@ export default function UsersClient({ users: initialUsers }: Props) {
                           <span
                             className={cn(
                               `
-                inline-flex
-                items-center
-                rounded-full
-                px-3
-                py-1
-                text-xs
-                font-semibold
-                border
-              `,
+                    inline-flex
+                    items-center
+                    rounded-full
+                    px-3
+                    py-1
+                    text-xs
+                    font-semibold
+                    border
+                  `,
                               roleBadge(user.role),
                             )}
                           >
@@ -408,14 +440,14 @@ export default function UsersClient({ users: initialUsers }: Props) {
                           <span
                             className={cn(
                               `
-                inline-flex
-                items-center
-                rounded-full
-                px-3
-                py-1
-                text-xs
-                font-semibold
-              `,
+                    inline-flex
+                    items-center
+                    rounded-full
+                    px-3
+                    py-1
+                    text-xs
+                    font-semibold
+                  `,
                               user.status === "Active"
                                 ? "bg-emerald-100 text-emerald-700"
                                 : "bg-slate-200 text-slate-700",
@@ -433,28 +465,27 @@ export default function UsersClient({ users: initialUsers }: Props) {
                   </div>
 
                   {/* ACTIONS */}
-
                   <div
                     className="
-      grid
-      grid-cols-1
-      sm:grid-cols-3
-      gap-2
-
-      w-full
-      2xl:w-auto
-
-      shrink-0
-    "
+          grid
+          grid-cols-1
+          sm:grid-cols-3
+          gap-3
+          w-full
+          xl:w-auto
+          xl:min-w-[420px]
+        "
                   >
                     <Button
                       variant="outline"
                       className="
-        rounded-2xl
-        h-11
-        px-5
-        w-full
-      "
+            h-11
+            rounded-2xl
+            border-[#1868A5]/20
+            hover:bg-[#1868A5]
+            hover:text-white
+            transition-all
+          "
                       onClick={() => handleStatusToggle(user)}
                     >
                       {user.status === "Active" ? "Deactivate" : "Activate"}
@@ -463,11 +494,13 @@ export default function UsersClient({ users: initialUsers }: Props) {
                     <Button
                       variant="outline"
                       className="
-        rounded-2xl
-        h-11
-        px-5
-        w-full
-      "
+            h-11
+            rounded-2xl
+            border-[#1868A5]/20
+            hover:bg-[#1868A5]
+            hover:text-white
+            transition-all
+          "
                       onClick={() => setPasswordUser(user)}
                     >
                       <KeyRound className="w-4 h-4 mr-2" />
@@ -475,13 +508,13 @@ export default function UsersClient({ users: initialUsers }: Props) {
                     </Button>
 
                     <Button
-                      variant="destructive"
                       className="
-        rounded-2xl
-        h-11
-        px-5
-        w-full
-      "
+            h-11
+            rounded-2xl
+            bg-red-500
+            hover:bg-red-600
+            text-white
+          "
                       onClick={() => setDeleteUser(user)}
                     >
                       <Trash2 className="w-4 h-4 mr-2" />
@@ -509,10 +542,14 @@ export default function UsersClient({ users: initialUsers }: Props) {
                 </p>
               </div>
             </div>
-
-            <Tabs defaultValue="admin" className="w-full">
-              <TabsList
-                className="
+            {permissionsLoading ? (
+              <div className="py-20 flex items-center justify-center">
+                <Loader2 className="w-8 h-8 animate-spin text-primary" />
+              </div>
+            ) : (
+              <Tabs defaultValue="admin" className="w-full">
+                <TabsList
+                  className="
           w-full
           h-auto
           p-1
@@ -523,46 +560,47 @@ export default function UsersClient({ users: initialUsers }: Props) {
           md:grid-cols-5
           gap-2
         "
-              >
-                <TabsTrigger value="admin" className="rounded-xl">
-                  Admin
-                </TabsTrigger>
+                >
+                  <TabsTrigger value="admin" className="rounded-xl">
+                    Admin
+                  </TabsTrigger>
 
-                <TabsTrigger value="director" className="rounded-xl">
-                  Director
-                </TabsTrigger>
+                  <TabsTrigger value="director" className="rounded-xl">
+                    Director
+                  </TabsTrigger>
 
-                <TabsTrigger value="approver" className="rounded-xl">
-                  Approver
-                </TabsTrigger>
+                  <TabsTrigger value="approver" className="rounded-xl">
+                    Approver
+                  </TabsTrigger>
 
-                <TabsTrigger value="pilot" className="rounded-xl">
-                  Pilot
-                </TabsTrigger>
+                  <TabsTrigger value="pilot" className="rounded-xl">
+                    Pilot
+                  </TabsTrigger>
 
-                <TabsTrigger value="crew" className="rounded-xl">
-                  Crew
-                </TabsTrigger>
-              </TabsList>
+                  <TabsTrigger value="crew" className="rounded-xl">
+                    Crew
+                  </TabsTrigger>
+                </TabsList>
 
-              {Object.entries(rolePermissions).map(([role, permissions]) => (
-                <TabsContent key={role} value={role} className="mt-8">
-                  <div
-                    className="
+                {Object.entries(rolePermissions || {}).map(
+                  ([role, permissions]) => (
+                    <TabsContent key={role} value={role} className="mt-8">
+                      <div
+                        className="
               grid
               grid-cols-1
               md:grid-cols-2
               xl:grid-cols-3
               gap-4
             "
-                  >
-                    {availablePermissions.map((item) => {
-                      const enabled = permissions.includes(item.key);
+                      >
+                        {availablePermissions.map((item) => {
+                          const enabled = permissions?.includes(item.key);
 
-                      return (
-                        <div
-                          key={item.key}
-                          className="
+                          return (
+                            <div
+                              key={item.key}
+                              className="
                     rounded-2xl
                     border
                     border-slate-200
@@ -576,78 +614,80 @@ export default function UsersClient({ users: initialUsers }: Props) {
                     hover:shadow-sm
                     transition-all
                   "
-                        >
-                          <div className="min-w-0">
-                            <p className="font-semibold text-slate-900">
-                              {item.label}
-                            </p>
+                            >
+                              <div className="min-w-0">
+                                <p className="font-semibold text-slate-900">
+                                  {item.label}
+                                </p>
 
-                            <p className="text-xs text-slate-500 mt-1 break-all">
-                              {item.key}
-                            </p>
-                          </div>
+                                <p className="text-xs text-slate-500 mt-1 break-all">
+                                  {item.key}
+                                </p>
+                              </div>
 
-                          <Switch
-                            checked={enabled}
-                            onCheckedChange={(checked) => {
-                              setRolePermissions((prev) => ({
-                                ...prev,
+                              <Switch
+                                checked={enabled}
+                                onCheckedChange={(checked) => {
+                                  setRolePermissions((prev) => ({
+                                    ...prev,
 
-                                [role]: checked
-                                  ? [
-                                      ...prev[role as keyof typeof prev],
-                                      item.key,
-                                    ]
-                                  : prev[role as keyof typeof prev].filter(
-                                      (p) => p !== item.key,
-                                    ),
-                              }));
-                            }}
-                          />
-                        </div>
-                      );
-                    })}
-                  </div>
+                                    [role]: checked
+                                      ? [
+                                          ...prev[role as keyof typeof prev],
+                                          item.key,
+                                        ]
+                                      : prev[role as keyof typeof prev].filter(
+                                          (p) => p !== item.key,
+                                        ),
+                                  }));
+                                }}
+                              />
+                            </div>
+                          );
+                        })}
+                      </div>
 
-                  <div className="mt-8 flex justify-end">
-                    <Button
-                      className="
+                      <div className="mt-8 flex justify-end">
+                        <Button
+                          className="
     rounded-2xl
     h-11
     px-6
   "
-                      onClick={async () => {
-                        try {
-                          await axios.patch("/api/permissions", {
-                            role,
+                          onClick={async () => {
+                            try {
+                              await axios.patch("/api/permissions", {
+                                role,
 
-                            permissions,
-                          });
+                                permissions,
+                              });
 
-                          toast({
-                            title: "Permissions Updated",
+                              toast({
+                                title: "Permissions Updated",
 
-                            description: `${role} permissions saved successfully.`,
-                          });
-                        } catch (error) {
-                          console.error(error);
+                                description: `${role} permissions saved successfully.`,
+                              });
+                            } catch (error) {
+                              console.error(error);
 
-                          toast({
-                            title: "Error",
+                              toast({
+                                title: "Error",
 
-                            description: "Failed to save permissions.",
+                                description: "Failed to save permissions.",
 
-                            variant: "destructive",
-                          });
-                        }
-                      }}
-                    >
-                      Save Permissions
-                    </Button>
-                  </div>
-                </TabsContent>
-              ))}
-            </Tabs>
+                                variant: "destructive",
+                              });
+                            }
+                          }}
+                        >
+                          Save Permissions
+                        </Button>
+                      </div>
+                    </TabsContent>
+                  ),
+                )}
+              </Tabs>
+            )}
           </CardContent>
         </Card>
       </div>
@@ -863,9 +903,9 @@ export default function UsersClient({ users: initialUsers }: Props) {
 
               <button
                 onClick={() => setPasswordUser(null)}
-                className="w-10 h-10 rounded-xl hover:bg-slate-100 flex items-center justify-center"
+                className="w-10 h-10 rounded-xl hover:bg-[#1868A5] flex items-center justify-center hover:rotate-90 transition-transform duration-300"
               >
-                <X className="w-5 h-5 text-slate-500" />
+                <X className="w-5 h-5 text-slate-900 hover:text-white transition-transform duration-300 " />
               </button>
             </div>
 
@@ -889,14 +929,14 @@ export default function UsersClient({ users: initialUsers }: Props) {
               <Button
                 variant="outline"
                 onClick={() => setPasswordUser(null)}
-                className="rounded-2xl w-full sm:w-auto"
+                className="rounded-2xl w-full sm:w-auto bg-white hover:bg-red-600/80 text-black hover:text-white transition-transform duration-300"
               >
                 Cancel
               </Button>
 
               <Button
                 onClick={handleChangePassword}
-                className="rounded-2xl w-full sm:w-auto"
+                className="rounded-2xl w-full sm:w-auto bg-[#1868A5] hover:bg-[#004b84] text-white hover:text-white transition-transform duration-300"
               >
                 Update Password
               </Button>

@@ -224,7 +224,7 @@ export default function FlightsPage() {
         </div>
         <Link
           href={`/flights/${flight.id}`}
-          className="w-full sm:w-auto text-center px-4 py-2 bg-slate-100 text-slate-700 rounded-md hover:bg-slate-200 text-xs sm:text-sm font-medium"
+          className="w-full sm:w-auto text-center px-4 py-2 bg-slate-100 text-slate-700 rounded-md hover:bg-[#1868A5] hover:text-white text-sm font-medium"
         >
           Manage Order
         </Link>
@@ -243,7 +243,7 @@ export default function FlightsPage() {
         </div>
         <button
           onClick={() => setIsModalOpen(true)}
-          className="w-full sm:w-auto bg-slate-900 text-white px-4 py-2 rounded-md hover:bg-slate-800 flex items-center justify-center gap-2 text-sm"
+          className="w-full sm:w-auto bg-[#1868A5] text-white px-4 py-2 rounded-md flex items-center justify-center gap-2 text-sm"
         >
           <Plus className="w-4 h-4" /> Add Flight
         </button>
@@ -289,7 +289,7 @@ export default function FlightsPage() {
               </h2>
               <button
                 onClick={() => setIsModalOpen(false)}
-                className="text-slate-400 hover:text-slate-600 p-2"
+                className="text-black hover:text-white hover:bg-[#1868A5] rounded-xl hover:rotate-180 transition-all duration-300 cursor-pointer p-2"
               >
                 <X className="w-6 h-6" />
               </button>
@@ -616,7 +616,7 @@ export default function FlightsPage() {
               <Button
                 onClick={handleCreateFlight}
                 disabled={saving}
-                className="rounded-xl px-6"
+                className="rounded-xl px-6 bg-[#1868A5] text-white hover:bg-[#1868A5] hover:text-white"
               >
                 {saving ? "Creating..." : "Create Flight"}
               </Button>

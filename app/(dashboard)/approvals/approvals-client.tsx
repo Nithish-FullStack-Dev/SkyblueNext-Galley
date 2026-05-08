@@ -234,9 +234,10 @@ export default function ApprovalsClient({ flights, currentUser }: Props) {
                           className="
                             w-full
                             rounded-xl
-                            border-blue-200
-                            text-blue-600
-                            hover:bg-blue-50
+                            border-[#1868A5]
+                            text-[#1868A5]
+                            hover:bg-[#1868A5]
+                            hover:text-white
                           "
                         >
                           <Eye className="w-4 h-4 mr-2" />
@@ -252,7 +253,8 @@ export default function ApprovalsClient({ flights, currentUser }: Props) {
                           rounded-xl
                           border-red-300
                           text-red-600
-                          hover:bg-red-50
+                          hover:bg-red-600
+                          hover:text-white
                         "
                       >
                         <X className="w-4 h-4 mr-2" />

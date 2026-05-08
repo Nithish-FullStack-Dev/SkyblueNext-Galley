@@ -246,7 +246,7 @@ export default function VendorsPage() {
 
               setIsModalOpen(true);
             }}
-            className="flex-1 sm:flex-none bg-slate-900 text-white px-4 py-2 rounded-md hover:bg-slate-800 flex items-center justify-center gap-2 text-sm font-medium"
+            className="flex-1 sm:flex-none bg-[#1868A5] text-white px-4 py-2 rounded-xl hover:bg-[#1868A5]/90 flex items-center justify-center gap-2 text-sm font-medium"
           >
             <Plus className="w-4 h-4" /> Add Vendor
           </button>
@@ -260,7 +260,23 @@ export default function VendorsPage() {
           placeholder="Search vendors..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
-          className="w-full pl-10 pr-4 py-2 border border-slate-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-slate-900/10"
+          className="
+  w-full
+  h-11
+  pl-10
+  pr-4
+  rounded-2xl
+  border-slate-200
+  bg-white
+
+  transition-all
+
+  focus-visible:ring-2
+  focus-visible:ring-[#1868A5]
+  focus-visible:border-[#1868A5]
+
+  placeholder:text-slate-400
+"
         />
       </div>
 
@@ -305,52 +321,226 @@ export default function VendorsPage() {
           filteredVendors.map((vendor) => (
             <div
               key={vendor.id}
-              className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-all flex flex-col md:flex-row justify-between gap-6"
+              className="
+      bg-white
+      rounded-3xl
+      border
+      border-slate-200
+      shadow-sm
+      hover:shadow-md
+      transition-all
+
+      p-5
+      sm:p-6
+
+      flex
+      flex-col
+      xl:flex-row
+      xl:items-center
+      justify-between
+
+      gap-6
+    "
             >
-              <div className="flex gap-4">
-                <div className="p-3 bg-slate-100 rounded-lg h-fit text-slate-600">
+              {/* LEFT */}
+
+              <div
+                className="
+        flex
+        flex-col
+        sm:flex-row
+        gap-4
+        min-w-0
+        flex-1
+      "
+              >
+                {/* ICON */}
+
+                <div
+                  className="
+          w-14
+          h-14
+          rounded-2xl
+          bg-[#1868A5]/10
+          text-[#1868A5]
+
+          flex
+          items-center
+          justify-center
+
+          shrink-0
+        "
+                >
                   <Store className="w-6 h-6" />
                 </div>
 
-                <div>
-                  <h3 className="font-bold text-slate-900 text-lg">
-                    {vendor.name}
-                  </h3>
+                {/* CONTENT */}
 
-                  <div className="flex flex-wrap gap-2 mt-1 mb-3">
-                    <span className="inline-flex items-center rounded-md bg-emerald-50 border border-emerald-100 px-2 py-1 text-[10px] font-bold text-emerald-700">
+                <div className="min-w-0 flex-1">
+                  {/* HEADER */}
+
+                  <div
+                    className="
+            flex
+            flex-col
+            sm:flex-row
+            sm:items-center
+            gap-3
+          "
+                  >
+                    <h3
+                      className="
+              font-bold
+              text-slate-900
+              text-lg
+              break-words
+            "
+                    >
+                      {vendor.name}
+                    </h3>
+
+                    <span
+                      className="
+              inline-flex
+              items-center
+              w-fit
+
+              rounded-full
+              bg-[#1868A5]/10
+              border
+              border-[#1868A5]/20
+
+              px-3
+              py-1
+
+              text-[11px]
+              font-bold
+              text-[#1868A5]
+            "
+                    >
                       {vendor.currency}
                     </span>
+                  </div>
 
+                  {/* AIRPORTS */}
+
+                  <div className="flex flex-wrap gap-2 mt-3">
                     {vendor.serviceAirports?.map((a: string) => (
                       <span
                         key={a}
-                        className="px-2 py-0.5 bg-blue-50 text-blue-700 rounded text-[10px] font-bold border border-blue-100"
+                        className="
+                inline-flex
+                items-center
+
+                rounded-full
+
+                px-3
+                py-1
+
+                text-[11px]
+                font-semibold
+
+                bg-[#1868A5]/10
+                text-black
+                border
+                border-[#1868A5]/20
+              "
                       >
                         {a}
                       </span>
                     ))}
                   </div>
 
-                  <div className="space-y-1 text-sm text-slate-500">
-                    <p className="flex items-center gap-2">
-                      <Mail className="w-3.5 h-3.5" />
-                      {vendor.email}
-                    </p>
+                  {/* CONTACT */}
 
-                    <p className="flex items-center gap-2">
-                      <Phone className="w-3.5 h-3.5" />
+                  <div
+                    className="
+            mt-4
+            grid
+            grid-cols-1
+            sm:grid-cols-2
+            gap-3
+          "
+                  >
+                    <div
+                      className="
+              flex
+              items-center
+              gap-2
+
+              text-sm
+              text-slate-500
+
+              break-all
+            "
+                    >
+                      <Mail className="w-4 h-4 text-[#1868A5] shrink-0" />
+                      {vendor.email}
+                    </div>
+
+                    <div
+                      className="
+              flex
+              items-center
+              gap-2
+
+              text-sm
+              text-slate-500
+            "
+                    >
+                      <Phone className="w-4 h-4 text-[#1868A5] shrink-0" />
                       {vendor.phone}
-                    </p>
+                    </div>
                   </div>
                 </div>
               </div>
 
-              <div className="flex flex-row md:flex-col justify-end gap-3 items-center md:items-end">
-                <div className="flex gap-2">
+              {/* RIGHT */}
+
+              <div
+                className="
+        w-full
+        xl:w-auto
+
+        flex
+        flex-col
+        gap-4
+      "
+              >
+                {/* ACTION BUTTONS */}
+
+                <div
+                  className="
+          grid
+          grid-cols-1
+          sm:grid-cols-2
+          gap-3
+          w-full
+        "
+                >
                   <Link
                     href={`/vendors/${vendor.id}/menu`}
-                    className="px-4 py-2 bg-slate-100 text-slate-700 rounded-lg text-sm font-medium hover:bg-slate-200 flex items-center gap-2"
+                    className="
+            h-11
+
+            rounded-2xl
+
+            bg-[#1868A5]/10
+            text-[#1868A5]
+
+            hover:bg-[#1868A5]
+            hover:text-white
+
+            transition-all
+
+            flex
+            items-center
+            justify-center
+            gap-2
+                    px-4
+            text-sm
+            font-semibold
+          "
                   >
                     <Store className="w-4 h-4" />
                     Menu
@@ -358,14 +548,42 @@ export default function VendorsPage() {
 
                   <Link
                     href={`/vendors/import?vendorId=${vendor.id}`}
-                    className="px-4 py-2 bg-slate-100 text-slate-700 rounded-lg text-sm font-medium hover:bg-slate-200 flex items-center gap-2"
+                    className="
+            h-11
+
+            rounded-2xl
+
+            bg-slate-100
+            text-slate-700
+
+            hover:bg-slate-200
+
+            transition-all
+
+            flex
+            items-center
+            justify-center
+            gap-2
+
+            text-sm
+            font-semibold
+          "
                   >
                     <Upload className="w-4 h-4" />
                     Import
                   </Link>
                 </div>
 
-                <div className="flex gap-2">
+                {/* ICON ACTIONS */}
+
+                <div
+                  className="
+          flex
+          items-center
+          justify-end
+          gap-2
+        "
+                >
                   <button
                     onClick={() => {
                       setErrors({});
@@ -377,14 +595,48 @@ export default function VendorsPage() {
 
                       setIsModalOpen(true);
                     }}
-                    className="p-2 text-slate-400 hover:text-blue-600"
+                    className="
+            w-10
+            h-10
+
+            rounded-xl
+
+            bg-[#1868A5]/10
+            text-[#1868A5]
+
+            hover:bg-[#1868A5]
+            hover:text-white
+
+            transition-all
+
+            flex
+            items-center
+            justify-center
+          "
                   >
                     <Edit2 className="w-4 h-4" />
                   </button>
 
                   <button
                     onClick={() => setVendorToDelete(vendor)}
-                    className="p-2 text-slate-400 hover:text-red-600"
+                    className="
+            w-10
+            h-10
+
+            rounded-xl
+
+            bg-red-50
+            text-red-600
+
+            hover:bg-red-600
+            hover:text-white
+
+            transition-all
+
+            flex
+            items-center
+            justify-center
+          "
                   >
                     <Trash2 className="w-4 h-4" />
                   </button>
@@ -405,7 +657,7 @@ export default function VendorsPage() {
               </h2>
               <button
                 onClick={() => setIsModalOpen(false)}
-                className="text-slate-400 hover:text-slate-600 p-2"
+                className="text-black hover:text-white hover:bg-[#1868A5] rounded-xl p-2 hover:rotate-180 transition-all duration-200"
               >
                 <X className="w-6 h-6" />
               </button>
@@ -565,7 +817,7 @@ export default function VendorsPage() {
                   <Button
                     type="button"
                     onClick={addAirport}
-                    className="h-11 rounded-xl px-6"
+                    className="h-11 rounded-xl px-6 bg-[#1868A5] text-white hover:bg-[#1868A5] hover:text-white transition-all duration-200"
                   >
                     Add
                   </Button>
@@ -587,7 +839,7 @@ export default function VendorsPage() {
             py-1.5
             text-xs
             font-semibold
-            text-blue-700
+            text-[#1868A5]
           "
                     >
                       {airport}
@@ -609,8 +861,8 @@ export default function VendorsPage() {
                 )}
               </div>
 
-              <div className="space-y-2">
-                <Label className="block text-sm font-semibold text-slate-800">
+              <div className="space-y-3">
+                <Label className="text-sm font-semibold text-slate-800">
                   Vendor Currency
                 </Label>
 
@@ -625,36 +877,70 @@ export default function VendorsPage() {
                     }
                     className="
         w-full
+        h-12
+
         appearance-none
-        rounded-xl
+
+        rounded-2xl
         border
         border-slate-200
+
         bg-white
+
         px-4
-        py-3
-        pr-10
+        pr-12
+
         text-sm
-        font-medium
+        font-semibold
         text-slate-900
+
         shadow-sm
-        outline-none
+
         transition-all
-        focus:border-slate-900
-        focus:ring-4
-        focus:ring-slate-900/10
-        hover:border-slate-300
+        duration-200
+
+        outline-none
+
+        hover:border-[#1868A5]/40
+
+        focus-visible:border-[#1868A5]
+        focus-visible:ring-4
+        focus-visible:ring-[#1868A5]/10
+
+        disabled:cursor-not-allowed
+        disabled:opacity-50
       "
                   >
                     <option value="INR">🇮🇳 INR — Indian Rupee</option>
+
                     <option value="USD">🇺🇸 USD — US Dollar</option>
+
                     <option value="AED">🇦🇪 AED — UAE Dirham</option>
+
                     <option value="EUR">🇪🇺 EUR — Euro</option>
+
                     <option value="GBP">🇬🇧 GBP — British Pound</option>
+
                     <option value="SAR">🇸🇦 SAR — Saudi Riyal</option>
+
                     <option value="QAR">🇶🇦 QAR — Qatari Riyal</option>
                   </select>
 
-                  <div className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-slate-400">
+                  {/* ICON */}
+
+                  <div
+                    className="
+        pointer-events-none
+        absolute
+        inset-y-0
+        right-4
+
+        flex
+        items-center
+
+        text-slate-400
+      "
+                  >
                     <svg
                       className="h-4 w-4"
                       fill="none"
@@ -671,14 +957,41 @@ export default function VendorsPage() {
                   </div>
                 </div>
 
-                <div className="rounded-xl border border-emerald-100 bg-emerald-50 px-3 py-2">
-                  <p className="text-xs font-medium text-emerald-700">
+                {/* INFO CARD */}
+
+                <div
+                  className="
+      rounded-2xl
+
+      border
+      border-[#1868A5]/10
+
+      bg-[#1868A5]/5
+
+      px-4
+      py-3
+    "
+                >
+                  <p
+                    className="
+        text-xs
+        sm:text-sm
+
+        font-medium
+        text-[#1868A5]
+
+        leading-relaxed
+      "
+                  >
                     All imported menu pricing will default to{" "}
                     <span className="font-bold">{newVendor.currency}</span>
                   </p>
                 </div>
+
+                {/* ERROR */}
+
                 {errors.currency && (
-                  <p className="text-xs text-red-500 font-medium">
+                  <p className="text-xs font-medium text-red-500">
                     {errors.currency}
                   </p>
                 )}
@@ -725,7 +1038,7 @@ export default function VendorsPage() {
               <Button
                 onClick={handleSaveVendor}
                 disabled={saving}
-                className="w-full sm:w-auto rounded-xl px-6"
+                className="w-full sm:w-auto rounded-xl px-6 bg-[#1868A5] text-white hover:bg-[#1868A5] hover:text-white transition-all duration-200"
               >
                 {saving
                   ? "Saving..."
