@@ -14,38 +14,12 @@
 
 ---
 
-## 🚀 Getting Started
-
-### 1. Configure Environment
-Create a `.env` file (see `.env.example`):
-```env
-DATABASE_URL="your-postgresql-url"
-NEXTAUTH_SECRET="your-secret"
-NEXTAUTH_URL="http://localhost:3000"
-```
-
-### 2. Install & Generate
-```bash
-npm install
-npx prisma generate
-```
-
-### 3. Database Migration & Seed
-```bash
-npx prisma migrate dev --name init
-npm run prisma seed
-```
-
-### 4. Run Development Server
-```bash
-npm run dev
-```
 
 ---
 
 ## 🔐 Default Credentials
 - **Email**: `admin@skyblue.com`
-- **Password**: `admin123`
+- **Password**: `***********`
 
 ---
 
