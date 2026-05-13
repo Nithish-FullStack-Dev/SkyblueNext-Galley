@@ -8,16 +8,27 @@ export async function GET() {
   const session = await auth();
 
   if (!session) {
-    return NextResponse.json(
-      { error: "Unauthorized" },
-      { status: 401 }
-    );
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
   try {
     const flights = await prisma.flightOrder.findMany({
       include: {
         creator: {
+          select: {
+            name: true,
+            role: true,
+          },
+        },
+
+        approver: {
+          select: {
+            name: true,
+            role: true,
+          },
+        },
+
+        rejector: {
           select: {
             name: true,
             role: true,
@@ -53,7 +64,7 @@ export async function GET() {
 
     return NextResponse.json(
       { error: "Failed to fetch flights" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -62,10 +73,7 @@ export async function POST(req: Request) {
   const session = await auth();
 
   if (!session || !session.user) {
-    return NextResponse.json(
-      { error: "Unauthorized" },
-      { status: 401 }
-    );
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
   try {
@@ -93,21 +101,21 @@ export async function POST(req: Request) {
     if (!departure?.trim()) {
       return NextResponse.json(
         { error: "Departure airport required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     if (!arrival?.trim()) {
       return NextResponse.json(
         { error: "Arrival airport required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     if (!date) {
       return NextResponse.json(
         { error: "Flight date required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -116,7 +124,7 @@ export async function POST(req: Request) {
     if (isNaN(parsedDate.getTime())) {
       return NextResponse.json(
         { error: "Invalid flight date" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -155,32 +163,31 @@ export async function POST(req: Request) {
         items: {
           create: Array.isArray(items)
             ? items.map((item: any) => ({
-              itemId: item.itemId || "custom",
+                itemId: item.itemId || "custom",
 
-              vendorId: item.vendorId || null,
+                vendorId: item.vendorId || null,
 
-              name: item.name || "Custom Item",
+                name: item.name || "Custom Item",
 
-              type: item.type || "custom",
+                type: item.type || "custom",
 
-              quantity: Number(item.quantity) || 1,
+                quantity: Number(item.quantity) || 1,
 
-              notes: item.notes || "",
+                notes: item.notes || "",
 
-              unit: item.unit || "",
+                unit: item.unit || "",
 
-              category: item.category || "",
+                category: item.category || "",
 
-              price:
-                item.price !== undefined &&
-                  item.price !== null
-                  ? Number(item.price)
-                  : null,
+                price:
+                  item.price !== undefined && item.price !== null
+                    ? Number(item.price)
+                    : null,
 
-              dietaryTags: Array.isArray(item.dietaryTags)
-                ? item.dietaryTags
-                : [],
-            }))
+                dietaryTags: Array.isArray(item.dietaryTags)
+                  ? item.dietaryTags
+                  : [],
+              }))
             : [],
         },
       },
@@ -215,7 +222,7 @@ export async function POST(req: Request) {
         error: "Failed to create flight",
         details: error.message,
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

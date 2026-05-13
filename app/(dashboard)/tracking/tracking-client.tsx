@@ -1,169 +1,221 @@
-// app\(dashboard)\tracking\tracking-client.tsx
 "use client";
 
 import { useMemo, useState } from "react";
-
 import axios from "axios";
-
 import Link from "next/link";
-
 import { useRouter } from "next/navigation";
-
 import {
+  AlertCircle,
   AlertTriangle,
-  CheckCircle2,
-  Clock3,
-  Download,
   Eye,
   FileText,
   Filter,
   Loader2,
   Mail,
+  Minus,
   Package,
   Plane,
+  Plus,
+  RefreshCcw,
+  Send,
   Upload,
   X,
+  CheckCircle2,
+  Circle,
+  ChevronRight,
 } from "lucide-react";
-
 import { format } from "date-fns";
-
 import { cn } from "@/lib/utils";
-
 import { Button } from "@/components/ui/button";
-
 import { Card, CardContent } from "@/components/ui/card";
-
 import { Input } from "@/components/ui/input";
-
 import { Textarea } from "@/components/ui/textarea";
-
 import DownloadPDFButton from "@/components/download-pdf-button";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { toast } from "@/components/ui/use-toast";
+
+interface OrderItem {
+  id: string;
+  name: string;
+  quantity: number;
+  category?: string | null;
+  unit?: string | null;
+  vendorName?: string | null;
+  vendor?: { name: string } | null;
+}
 
 interface Order {
   id: string;
-
   flightNumber: string;
-
   tailNumber: string;
-
   departure: string;
-
   arrival: string;
-
   date: string;
-
   status: string;
-
   billUrl?: string | null;
-
   billAmount?: number | null;
-
   billNotes?: string | null;
-
   createdAt: string;
-
   updatedAt: string;
-
-  vendor?: {
-    id: string;
-    name: string;
-    email: string;
-  } | null;
-
-  creator?: {
-    name: string;
-  };
-
-  approver?: {
-    name: string;
-    role: string;
-  } | null;
-
-  rejector?: {
-    name: string;
-    role: string;
-  } | null;
-  items: {
-    id: string;
-  }[];
+  vendor?: { id: string; name: string; email: string } | null;
+  creator?: { name: string };
+  approver?: { name: string; role: string } | null;
+  rejector?: { name: string; role: string } | null;
+  rejectionReason?: string | null;
+  rejectedAt?: string | null;
+  items: OrderItem[];
 }
 
 interface Props {
   orders: Order[];
 }
 
-const stepperStatuses = [
+const statusFlow = [
   "Submitted",
   "Approved",
   "SentToVendor",
   "Confirmed",
+  "Delivered",
   "Completed",
 ];
 
-const allStatuses = [...stepperStatuses, "Rejected", "Cancelled"];
+const statusLabels: Record<string, string> = {
+  Submitted: "Submitted",
+  Approved: "Approved",
+  SentToVendor: "Sent to Vendor",
+  Confirmed: "Confirmed",
+  Delivered: "Delivered",
+  Completed: "Completed",
+  Rejected: "Rejected",
+  Cancelled: "Cancelled",
+};
 
-const tabs = [
-  "All",
-  "Submitted",
-  "Approved",
-  "SentToVendor",
-  "Confirmed",
-  "Completed",
-  "Rejected",
-  "Cancelled",
-];
+const stepShortLabel: Record<string, string> = {
+  Submitted: "Submitted",
+  Approved: "Approved",
+  SentToVendor: "Sent to Vendor",
+  Confirmed: "Confirmed",
+  Delivered: "Delivered",
+  Completed: "Completed",
+};
+
+const statusConfig: Record<
+  string,
+  { label: string; color: string; bg: string; border: string; dot: string }
+> = {
+  Submitted: {
+    label: "Submitted",
+    color: "text-slate-600",
+    bg: "bg-slate-50",
+    border: "border-slate-200",
+    dot: "bg-slate-400",
+  },
+  Approved: {
+    label: "Approved",
+    color: "text-blue-700",
+    bg: "bg-blue-50",
+    border: "border-blue-200",
+    dot: "bg-blue-500",
+  },
+  SentToVendor: {
+    label: "Sent to Vendor",
+    color: "text-violet-700",
+    bg: "bg-violet-50",
+    border: "border-violet-200",
+    dot: "bg-violet-500",
+  },
+  Confirmed: {
+    label: "Confirmed",
+    color: "text-cyan-700",
+    bg: "bg-cyan-50",
+    border: "border-cyan-200",
+    dot: "bg-cyan-500",
+  },
+  Delivered: {
+    label: "Delivered",
+    color: "text-amber-700",
+    bg: "bg-amber-50",
+    border: "border-amber-200",
+    dot: "bg-amber-500",
+  },
+  Completed: {
+    label: "Completed",
+    color: "text-emerald-700",
+    bg: "bg-emerald-50",
+    border: "border-emerald-200",
+    dot: "bg-emerald-500",
+  },
+  Rejected: {
+    label: "Rejected",
+    color: "text-red-700",
+    bg: "bg-red-50",
+    border: "border-red-200",
+    dot: "bg-red-500",
+  },
+  Cancelled: {
+    label: "Cancelled",
+    color: "text-slate-500",
+    bg: "bg-slate-50",
+    border: "border-slate-200",
+    dot: "bg-slate-400",
+  },
+};
+
+type ConfirmDialogState = { order: Order; targetStatus: string } | null;
+type RestoreItem = {
+  id: string;
+  name: string;
+  quantity: number;
+  returnedQty: number;
+  unit?: string | null;
+  category?: string | null;
+};
 
 export default function TrackingClient({ orders }: Props) {
   const router = useRouter();
-
   const [search, setSearch] = useState("");
-
-  const [activeTab, setActiveTab] = useState("All");
-
   const [loadingId, setLoadingId] = useState<string | null>(null);
 
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
-
   const [billAmount, setBillAmount] = useState("");
-
   const [billNotes, setBillNotes] = useState("");
-
   const [billFile, setBillFile] = useState<File | null>(null);
+
+  const [rejectingOrder, setRejectingOrder] = useState<Order | null>(null);
+  const [rejectionReason, setRejectionReason] = useState("");
+
+  const [confirmDialog, setConfirmDialog] = useState<ConfirmDialogState>(null);
+
+  const [restoreOrder, setRestoreOrder] = useState<Order | null>(null);
+  const [restoreItems, setRestoreItems] = useState<RestoreItem[]>([]);
+  const [restoreLoading, setRestoreLoading] = useState(false);
 
   const filteredOrders = useMemo(() => {
     return orders
       .filter((order) => {
         const query = search.toLowerCase();
-
-        const matchesSearch =
+        return (
           order.flightNumber.toLowerCase().includes(query) ||
           order.departure.toLowerCase().includes(query) ||
-          order.arrival.toLowerCase().includes(query);
-
-        const matchesTab =
-          activeTab === "All" ? true : order.status === activeTab;
-
-        return matchesSearch && matchesTab;
+          order.arrival.toLowerCase().includes(query)
+        );
       })
-
       .sort(
         (a, b) =>
           new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
       );
-  }, [orders, search, activeTab]);
+  }, [orders, search]);
+
+  const confirmStatusChange = (order: Order, status: string) => {
+    if (status === "Rejected") {
+      setRejectingOrder(order);
+      return;
+    }
+    setConfirmDialog({ order, targetStatus: status });
+  };
 
   const handleStatusChange = async (order: Order, status: string) => {
     try {
       const flightDate = new Date(order.date);
-
       if (
         flightDate < new Date() &&
         !["Cancelled", "Rejected"].includes(status)
@@ -173,16 +225,36 @@ export default function TrackingClient({ orders }: Props) {
           description: "This flight departure time has already passed.",
           variant: "destructive",
         });
-
+        setConfirmDialog(null);
         return;
       }
-
       setLoadingId(order.id);
+      await axios.patch(`/api/flights/${order.id}/status`, { status });
+      router.refresh();
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setLoadingId(null);
+      setConfirmDialog(null);
+    }
+  };
 
-      await axios.patch(`/api/flights/${order.id}/status`, {
-        status,
+  const openUploadModal = (order: Order) => {
+    setSelectedOrder(order);
+    setBillAmount(order.billAmount?.toString() || "");
+    setBillNotes(order.billNotes || "");
+  };
+
+  const handleReject = async () => {
+    try {
+      if (!rejectingOrder) return;
+      setLoadingId(rejectingOrder.id);
+      await axios.patch(`/api/flights/${rejectingOrder.id}/status`, {
+        status: "Rejected",
+        rejectionReason,
       });
-
+      setRejectingOrder(null);
+      setRejectionReason("");
       router.refresh();
     } catch (error) {
       console.error(error);
@@ -191,47 +263,27 @@ export default function TrackingClient({ orders }: Props) {
     }
   };
 
-  const openUploadModal = (order: Order) => {
-    setSelectedOrder(order);
-
-    setBillAmount(order.billAmount?.toString() || "");
-
-    setBillNotes(order.billNotes || "");
-  };
-
   const handleUploadBill = async () => {
     try {
       if (!selectedOrder) return;
-
       setLoadingId(selectedOrder.id);
-
       let uploadedUrl = selectedOrder.billUrl;
-
       if (billFile) {
         const formData = new FormData();
-
         formData.append("file", billFile);
-
         const uploadRes = await axios.post("/api/upload", formData);
-
         uploadedUrl = uploadRes.data.url;
       }
-
       await axios.patch(`/api/flights/${selectedOrder.id}/status`, {
         status: "Completed",
         billAmount,
         billNotes,
         billUrl: uploadedUrl,
       });
-
       setSelectedOrder(null);
-
       setBillAmount("");
-
       setBillNotes("");
-
       setBillFile(null);
-
       router.refresh();
     } catch (error) {
       console.error(error);
@@ -240,82 +292,80 @@ export default function TrackingClient({ orders }: Props) {
     }
   };
 
+  const openRestoreModal = (order: Order) => {
+    setRestoreOrder(order);
+    setRestoreItems(
+      order.items.map((item) => ({
+        id: item.id,
+        name: item.name,
+        quantity: item.quantity,
+        returnedQty: 0,
+        unit: item.unit,
+        category: item.category,
+      })),
+    );
+  };
+
+  const handleRestoreQtyChange = (id: string, delta: number) => {
+    setRestoreItems((prev) =>
+      prev.map((item) => {
+        if (item.id !== id) return item;
+        const next = Math.min(
+          item.quantity,
+          Math.max(0, item.returnedQty + delta),
+        );
+        return { ...item, returnedQty: next };
+      }),
+    );
+  };
+
+  const handleRestoreSubmit = async () => {
+    try {
+      if (!restoreOrder) return;
+      setRestoreLoading(true);
+      await axios.post(`/api/flights/${restoreOrder.id}/restore`, {
+        items: restoreItems.map(({ id, returnedQty }) => ({ id, returnedQty })),
+      });
+      setRestoreOrder(null);
+      setRestoreItems([]);
+      toast({
+        title: "Items restored",
+        description: "Returned quantities have been saved.",
+      });
+    } catch (error) {
+      console.error(error);
+      toast({
+        title: "Error",
+        description: "Failed to restore items.",
+        variant: "destructive",
+      });
+    } finally {
+      setRestoreLoading(false);
+    }
+  };
+
+  const getStepIndex = (status: string) => statusFlow.indexOf(status);
+
   return (
     <>
-      <div className="space-y-8">
-        {/* HEADER */}
-
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight text-slate-900">
-            Order Tracking
-          </h1>
-
-          <p className="text-slate-500 mt-1">
-            Track and manage catering workflow operations.
-          </p>
-        </div>
-
-        {/* SEARCH + FILTER */}
-
-        <div className="space-y-5">
-          {/* TOP BAR */}
-          <div
-            className="
-      flex
-      flex-col
-      lg:flex-row
-      lg:items-center
-      justify-between
-      gap-4
-    "
-          >
-            {/* SEARCH */}
-            <div className="relative w-full lg:max-w-md">
-              <Input
-                placeholder="Search flight, route..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="
-          h-12
-          rounded-2xl
-          border-slate-200
-          bg-white
-          pr-4
-          focus-visible:ring-[#1868A5]
-          focus-visible:border-[#1868A5]
-        "
-              />
+      <div className="min-h-screen bg-[#F7F8FA]">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-8">
+          <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+            <div>
+              <p className="text-xs font-semibold tracking-[0.18em] uppercase text-[#1868A5] mb-1">
+                Operations
+              </p>
+              <h1 className="text-3xl font-bold text-slate-900 tracking-tight">
+                Order Tracking
+              </h1>
+              <p className="text-slate-500 text-sm mt-1">
+                Monitor and manage catering workflow in real time.
+              </p>
             </div>
-
-            {/* FILTER INFO */}
-            <div
-              className="
-        flex
-        items-center
-        justify-center
-        lg:justify-end
-        gap-2
-
-        rounded-2xl
-        bg-[#1868A5]/5
-        border
-        border-[#1868A5]/10
-
-        px-4
-        py-3
-
-        text-sm
-        text-slate-600
-
-        w-full
-        lg:w-auto
-      "
-            >
+            <div className="flex items-center gap-2 bg-white border border-slate-200 rounded-2xl px-4 py-2.5 shadow-sm">
               <Filter className="w-4 h-4 text-[#1868A5]" />
-
-              <span>
-                Showing{" "}
-                <span className="font-bold text-[#1868A5]">
+              <span className="text-sm text-slate-500">
+                <span className="font-bold text-slate-900">
                   {filteredOrders.length}
                 </span>{" "}
                 flights
@@ -323,332 +373,282 @@ export default function TrackingClient({ orders }: Props) {
             </div>
           </div>
 
-          {/* TABS */}
-
-          <div
-            className="
-      relative
-      overflow-x-auto
-      scrollbar-hide
-      -mx-1
-      px-1
-    "
-          >
-            <div
-              className="
-        flex
-        items-center
-        gap-3
-        min-w-max
-        pb-2
-      "
+          <div className="relative">
+            <svg
+              className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth={2}
+              viewBox="0 0 24 24"
             >
-              {tabs.map((tab) => {
-                const active = activeTab === tab;
+              <circle cx="11" cy="11" r="8" />
+              <path d="m21 21-4.35-4.35" />
+            </svg>
+            <Input
+              placeholder="Search by flight number or route…"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="h-12 pl-10 rounded-2xl border-slate-200 bg-white shadow-sm focus-visible:ring-[#1868A5] focus-visible:border-[#1868A5] text-sm"
+            />
+          </div>
 
-                const count =
-                  tab === "All"
-                    ? orders.length
-                    : orders.filter((o) => o.status === tab).length;
+          {filteredOrders.length === 0 ? (
+            <div className="py-24 flex flex-col items-center justify-center bg-white rounded-3xl border border-dashed border-slate-200">
+              <div className="w-16 h-16 rounded-2xl bg-slate-100 flex items-center justify-center mb-5">
+                <Package className="w-8 h-8 text-slate-300" />
+              </div>
+              <h3 className="text-lg font-semibold text-slate-700">
+                No orders found
+              </h3>
+              <p className="text-slate-400 text-sm mt-1">
+                Orders will appear here once submitted.
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-5">
+              {filteredOrders.map((order) => {
+                const flightDate = new Date(order.date);
+                const now = new Date();
+                const hoursUntilFlight =
+                  (flightDate.getTime() - now.getTime()) / (1000 * 60 * 60);
+                const isUrgent =
+                  hoursUntilFlight > 0 &&
+                  hoursUntilFlight < 24 &&
+                  !["Completed", "Cancelled", "Rejected"].includes(
+                    order.status,
+                  );
+                const isOverdue =
+                  hoursUntilFlight < 0 &&
+                  !["Completed", "Cancelled", "Rejected"].includes(
+                    order.status,
+                  );
+                const cfg =
+                  statusConfig[order.status] || statusConfig.Submitted;
+                const currentStep = getStepIndex(order.status);
+                const isTerminal =
+                  order.status === "Rejected" || order.status === "Cancelled";
+                const isSentToVendor = order.status === "SentToVendor";
+                const isCompleted = order.status === "Completed";
 
                 return (
-                  <button
-                    key={tab}
-                    onClick={() => setActiveTab(tab)}
+                  <Card
+                    key={order.id}
                     className={cn(
-                      `
-                h-11
-                px-5
-                rounded-2xl
-                border
-                text-sm
-                font-semibold
-                whitespace-nowrap
-                transition-all
-                shrink-0
-              `,
-                      active
-                        ? `
-                  bg-[#1868A5]
-                  text-white
-                  border-[#1868A5]
-                  shadow-md
-                `
-                        : `
-                  bg-white
-                  text-slate-600
-                  border-slate-200
-                  hover:border-[#1868A5]/30
-                  hover:text-[#1868A5]
-                  hover:bg-[#1868A5]/5
-                `,
+                      "rounded-3xl border bg-white shadow-sm overflow-hidden transition-shadow hover:shadow-md",
+                      isUrgent
+                        ? "border-orange-300"
+                        : isOverdue
+                          ? "border-red-300"
+                          : "border-slate-200",
                     )}
                   >
-                    {tab}
-
-                    <span
-                      className={cn(
-                        `
-                  ml-2
-                  px-2
-                  py-0.5
-                  rounded-full
-                  text-[11px]
-                  font-bold
-                `,
-                        active
-                          ? "bg-white/20 text-white"
-                          : "bg-slate-100 text-slate-500",
-                      )}
-                    >
-                      {count}
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        </div>
-
-        {/* ORDERS */}
-
-        {filteredOrders.length === 0 ? (
-          <div className="py-20 flex flex-col items-center justify-center bg-white rounded-3xl border border-dashed border-slate-200">
-            <div className="w-20 h-20 rounded-3xl bg-slate-100 flex items-center justify-center mb-6">
-              <Package className="w-10 h-10 text-slate-400" />
-            </div>
-
-            <h3 className="text-xl font-bold text-slate-900">
-              No Orders Found
-            </h3>
-
-            <p className="text-slate-500 mt-2 text-sm">
-              Orders will appear here once submitted.
-            </p>
-          </div>
-        ) : (
-          <div className="space-y-6">
-            {filteredOrders.map((order) => {
-              const currentStatusIndex = stepperStatuses.indexOf(order.status);
-
-              const flightDate = new Date(order.date);
-
-              const now = new Date();
-
-              const hoursUntilFlight =
-                (flightDate.getTime() - now.getTime()) / (1000 * 60 * 60);
-
-              const isUrgent =
-                hoursUntilFlight > 0 &&
-                hoursUntilFlight < 24 &&
-                !["Completed", "Cancelled", "Rejected"].includes(order.status);
-
-              const isOverdue =
-                hoursUntilFlight < 0 &&
-                !["Completed", "Cancelled", "Rejected"].includes(order.status);
-
-              return (
-                <Card
-                  key={order.id}
-                  className={cn(
-                    `
-                      rounded-3xl
-                      border
-                      shadow-sm
-                      overflow-hidden
-                    `,
-                    isUrgent
-                      ? "border-orange-300 ring-1 ring-orange-200"
-                      : isOverdue
-                        ? "border-red-300 ring-1 ring-red-200"
-                        : "border-slate-200",
-                  )}
-                >
-                  <CardContent className="p-6 lg:p-8">
-                    {(isUrgent || isOverdue) && (
+                    <CardContent className="p-0">
                       <div
                         className={cn(
-                          `
-        mb-6
-        flex
-        items-center
-        gap-3
-        rounded-2xl
-        px-4
-        py-3
-        text-sm
-        font-medium
-      `,
+                          "h-1 w-full",
                           isUrgent
-                            ? "bg-orange-50 text-orange-700 border border-orange-200"
-                            : "bg-red-50 text-red-700 border border-red-200",
+                            ? "bg-orange-400"
+                            : isOverdue
+                              ? "bg-red-400"
+                              : order.status === "Completed"
+                                ? "bg-emerald-400"
+                                : order.status === "Rejected"
+                                  ? "bg-red-400"
+                                  : "bg-[#1868A5]",
                         )}
-                      >
-                        <AlertTriangle className="w-4 h-4 shrink-0" />
+                      />
 
-                        <span>
-                          {isUrgent
-                            ? "Urgent: Flight departs within 24 hours."
-                            : "Overdue: Flight departure time passed."}
-                        </span>
-                      </div>
-                    )}
-
-                    <div
-                      className="
-    flex
-    flex-col
-    xl:flex-row
-    gap-6
-    xl:gap-8
-    justify-between
-  "
-                    >
-                      {/* LEFT */}
-
-                      <div
-                        className="
-    flex
-    flex-col
-    sm:flex-row
-    gap-5
-    min-w-0
-    flex-1
-  "
-                      >
-                        {/* ICON */}
-
-                        <div
-                          className="
-        w-16
-        h-16
-        rounded-3xl
-        bg-primary/10
-        flex
-        items-center
-        justify-center
-        shrink-0
-      "
-                        >
-                          <Plane className="w-7 h-7 text-primary" />
-                        </div>
-
-                        {/* DETAILS */}
-
-                        <div className="min-w-0 flex-1">
-                          {/* HEADER */}
-
+                      <div className="p-6 lg:p-8">
+                        {(isUrgent || isOverdue) && (
                           <div
-                            className="
-    flex
-    flex-col
-    sm:flex-row
-    sm:items-center
-    gap-3
-    min-w-0
-  "
+                            className={cn(
+                              "flex items-center gap-2.5 rounded-2xl px-4 py-3 text-sm font-medium mb-6 border",
+                              isUrgent
+                                ? "bg-orange-50 text-orange-700 border-orange-200"
+                                : "bg-red-50 text-red-700 border-red-200",
+                            )}
                           >
-                            <h2
-                              className="
-    text-xl
-    sm:text-2xl
-    font-bold
-    tracking-tight
-    text-slate-900
-    break-all
-  "
-                            >
-                              {order.flightNumber}
-                            </h2>
-
-                            <span
-                              className={cn(
-                                `
-              inline-flex
-              items-center
-              rounded-full
-              px-3
-              py-1
-              text-[11px]
-              font-semibold
-              border
-            `,
-
-                                order.status === "Approved" &&
-                                  "bg-emerald-100 text-emerald-700 border-emerald-200",
-
-                                order.status === "Rejected" &&
-                                  "bg-red-100 text-red-700 border-red-200",
-
-                                order.status === "Submitted" &&
-                                  "bg-sky-100 text-sky-700 border-sky-200",
-
-                                order.status === "SentToVendor" &&
-                                  "bg-violet-100 text-violet-700 border-violet-200",
-
-                                order.status === "Confirmed" &&
-                                  "bg-cyan-100 text-cyan-700 border-cyan-200",
-
-                                order.status === "Completed" &&
-                                  "bg-blue-100 text-blue-700 border-blue-200",
-
-                                order.status === "Cancelled" &&
-                                  "bg-slate-100 text-slate-700 border-slate-200",
-                              )}
-                            >
-                              {order.status}
+                            <AlertTriangle className="w-4 h-4 shrink-0" />
+                            <span>
+                              {isUrgent
+                                ? "Urgent: Flight departs within 24 hours."
+                                : "Overdue: Flight departure time has already passed."}
                             </span>
                           </div>
+                        )}
 
-                          {/* ROUTE */}
-
-                          <p className="mt-2 text-base text-slate-500">
-                            {order.departure} → {order.arrival}
-                          </p>
-
-                          {/* META */}
-
-                          <div
-                            className="
-                          mt-6
-                          grid
-                        grid-cols-1
-                        sm:grid-cols-2
-                        xl:grid-cols-4
-                          gap-5
-                        "
-                          >
-                            {/* ITEMS */}
-
-                            <div className="min-w-0">
-                              <p className="text-[11px] uppercase tracking-wider font-semibold text-slate-400">
-                                Items
-                              </p>
-
-                              <p className="mt-1 text-sm sm:text-base font-bold text-slate-900">
-                                {order.items?.length}
-                              </p>
+                        <div className="flex flex-col xl:flex-row xl:items-start gap-8">
+                          <div className="flex-1 min-w-0 space-y-6">
+                            <div className="flex flex-col sm:flex-row sm:items-start gap-4">
+                              <div className="w-14 h-14 rounded-2xl bg-[#1868A5]/10 flex items-center justify-center shrink-0">
+                                <Plane className="w-6 h-6 text-[#1868A5]" />
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <div className="flex flex-wrap items-center gap-3">
+                                  <h2 className="text-2xl font-bold text-slate-900 tracking-tight">
+                                    {order.flightNumber}
+                                  </h2>
+                                  <span
+                                    className={cn(
+                                      "inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold border",
+                                      cfg.bg,
+                                      cfg.color,
+                                      cfg.border,
+                                    )}
+                                  >
+                                    <span
+                                      className={cn(
+                                        "w-1.5 h-1.5 rounded-full",
+                                        cfg.dot,
+                                      )}
+                                    />
+                                    {cfg.label}
+                                  </span>
+                                </div>
+                                <div className="flex items-center gap-2 mt-1.5 text-slate-500 text-sm font-medium">
+                                  <span>{order.departure}</span>
+                                  <ChevronRight className="w-3.5 h-3.5 text-slate-300" />
+                                  <span>{order.arrival}</span>
+                                  <span className="text-slate-300">·</span>
+                                  <span>
+                                    {format(
+                                      new Date(order.date),
+                                      "MMM dd, yyyy",
+                                    )}
+                                  </span>
+                                </div>
+                              </div>
                             </div>
 
-                            {/* VENDORS */}
+                            {!isTerminal && (
+                              <div className="space-y-4">
+                                <p className="text-[10px] uppercase tracking-widest font-bold text-slate-400">
+                                  Workflow Progress
+                                </p>
 
-                            <div className="min-w-0">
-                              <p className="text-[11px] uppercase tracking-wider font-semibold text-slate-400">
-                                Vendor
-                              </p>
+                                <div className="flex items-start gap-0">
+                                  {statusFlow.map((status, idx) => {
+                                    const isStepCompleted = currentStep > idx;
+                                    const isStepActive = currentStep === idx;
+                                    return (
+                                      <div
+                                        key={status}
+                                        className="flex items-center flex-1 last:flex-none"
+                                      >
+                                        <button
+                                          onClick={() =>
+                                            confirmStatusChange(order, status)
+                                          }
+                                          disabled={loadingId === order.id}
+                                          className="relative flex flex-col items-center gap-1.5 group transition-all focus:outline-none"
+                                        >
+                                          <div
+                                            className={cn(
+                                              "w-8 h-8 rounded-full border-2 flex items-center justify-center transition-all",
+                                              isStepCompleted
+                                                ? "bg-[#1868A5] border-[#1868A5]"
+                                                : isStepActive
+                                                  ? "bg-white border-[#1868A5] ring-4 ring-[#1868A5]/15"
+                                                  : "bg-white border-slate-200 group-hover:border-[#1868A5]/40",
+                                            )}
+                                          >
+                                            {isStepCompleted ? (
+                                              <CheckCircle2 className="w-4 h-4 text-white" />
+                                            ) : isStepActive ? (
+                                              <div className="w-2.5 h-2.5 rounded-full bg-[#1868A5]" />
+                                            ) : (
+                                              <Circle className="w-3 h-3 text-slate-300 group-hover:text-[#1868A5]/40" />
+                                            )}
+                                          </div>
+                                          <span
+                                            className={cn(
+                                              "text-[10px] font-semibold whitespace-normal hidden sm:block text-center leading-tight w-[60px]",
+                                              isStepCompleted || isStepActive
+                                                ? "text-[#1868A5]"
+                                                : "text-slate-400",
+                                            )}
+                                          >
+                                            {stepShortLabel[status] ?? status}
+                                          </span>
+                                        </button>
+                                        {idx < statusFlow.length - 1 && (
+                                          <div
+                                            className={cn(
+                                              "flex-1 h-0.5 mx-1 rounded-full transition-colors mb-5",
+                                              currentStep > idx
+                                                ? "bg-[#1868A5]"
+                                                : "bg-slate-200",
+                                            )}
+                                          />
+                                        )}
+                                      </div>
+                                    );
+                                  })}
+                                </div>
 
-                              <div className="mt-2 flex flex-wrap gap-2">
-                                {Array.from(
-                                  new Set(
-                                    order.items
-                                      ?.map(
-                                        (item: any) =>
-                                          item.vendor?.name || item.vendorName,
-                                      )
-                                      .filter(Boolean),
-                                  ),
-                                ).length > 0 ? (
-                                  Array.from(
+                                {isSentToVendor && (
+                                  <div className="pt-3 border-t border-slate-100">
+                                    <Button
+                                      variant="outline"
+                                      disabled
+                                      className="h-9 px-4 rounded-xl border border-violet-200 text-violet-600 text-xs font-semibold bg-violet-50 opacity-60 cursor-not-allowed"
+                                    >
+                                      <Send className="w-3.5 h-3.5 mr-2" />
+                                      Send to Vendor (coming soon)
+                                    </Button>
+                                  </div>
+                                )}
+
+                                {isCompleted && (
+                                  <div className="pt-3 border-t border-slate-100">
+                                    <Button
+                                      onClick={() => openRestoreModal(order)}
+                                      variant="outline"
+                                      className="h-9 px-4 rounded-xl border border-emerald-200 text-emerald-700 text-xs font-semibold hover:bg-emerald-50 transition-all"
+                                    >
+                                      <RefreshCcw className="w-3.5 h-3.5 mr-2" />
+                                      Restore Items
+                                    </Button>
+                                  </div>
+                                )}
+
+                                <div className="flex gap-2 pt-1">
+                                  <button
+                                    onClick={() => setRejectingOrder(order)}
+                                    disabled={loadingId === order.id}
+                                    className="h-9 px-4 rounded-xl border border-red-200 text-red-600 text-xs font-semibold hover:bg-red-50 transition-all"
+                                  >
+                                    Reject
+                                  </button>
+                                  <button
+                                    onClick={() =>
+                                      confirmStatusChange(order, "Cancelled")
+                                    }
+                                    disabled={loadingId === order.id}
+                                    className="h-9 px-4 rounded-xl border border-slate-200 text-slate-500 text-xs font-semibold hover:bg-slate-50 transition-all"
+                                  >
+                                    Cancel
+                                  </button>
+                                </div>
+                              </div>
+                            )}
+
+                            <div className="grid grid-cols-2 lg:grid-cols-4 gap-5 border-t border-slate-100 pt-6">
+                              <div>
+                                <p className="text-[10px] uppercase tracking-widest font-bold text-slate-400 mb-1.5">
+                                  Items
+                                </p>
+                                <p className="text-lg font-bold text-slate-900">
+                                  {order.items?.length ?? 0}
+                                </p>
+                              </div>
+
+                              <div>
+                                <p className="text-[10px] uppercase tracking-widest font-bold text-slate-400 mb-1.5">
+                                  Vendor
+                                </p>
+                                <div className="flex flex-wrap gap-1.5">
+                                  {Array.from(
                                     new Set(
                                       order.items
                                         ?.map(
@@ -661,351 +661,596 @@ export default function TrackingClient({ orders }: Props) {
                                   ).map((vendor: any) => (
                                     <span
                                       key={vendor}
-                                      className="
-              inline-flex
-              items-center
-              rounded-full
-              px-3
-              py-1
-              text-[11px]
-              font-semibold
-              bg-emerald-50
-              text-emerald-700
-              border
-              border-emerald-200
-              break-words
-max-w-full
-text-center
-            "
+                                      className="inline-flex items-center rounded-lg px-2.5 py-1 text-[11px] font-semibold bg-slate-100 text-slate-600"
                                     >
                                       {vendor}
                                     </span>
-                                  ))
-                                ) : (
-                                  <p className="text-sm font-semibold text-slate-900">
-                                    Not Assigned
-                                  </p>
-                                )}
-                              </div>
-                            </div>
-
-                            {/* SUBMITTED */}
-
-                            <div className="min-w-0">
-                              <p className="text-[11px] uppercase tracking-wider font-semibold text-slate-400">
-                                Submitted
-                              </p>
-
-                              <p className="mt-1 text-sm sm:text-base font-bold text-slate-900">
-                                {format(
-                                  new Date(order.createdAt),
-                                  "MMM dd, yyyy",
-                                )}
-                              </p>
-                            </div>
-
-                            {/* APPROVED / REJECTED */}
-
-                            <div className="min-w-0">
-                              <p className="text-[11px] uppercase tracking-wider font-semibold text-slate-400">
-                                {order.status === "Rejected"
-                                  ? "Rejected By"
-                                  : "Approved By"}
-                              </p>
-
-                              <div className="mt-1">
-                                {order.status === "Rejected" ? (
-                                  order.rejector ? (
-                                    <div className="space-y-1">
-                                      <p className="text-sm sm:text-base font-bold text-slate-900">
-                                        {order.rejector.name}
-                                      </p>
-
-                                      <span
-                                        className="
-                inline-flex
-                items-center
-                rounded-full
-                px-2.5
-                py-1
-                text-[10px]
-                font-semibold
-                bg-red-100
-                text-red-700
-              "
-                                      >
-                                        {order.rejector.role}
-                                      </span>
-                                    </div>
-                                  ) : (
-                                    <p className="text-sm font-semibold text-slate-900">
-                                      -
-                                    </p>
-                                  )
-                                ) : order.approver ? (
-                                  <div className="space-y-1">
-                                    <p className="text-sm sm:text-base font-bold text-slate-900">
-                                      {order.approver.name}
-                                    </p>
-
-                                    <span
-                                      className="
-              inline-flex
-              items-center
-              rounded-full
-              px-2.5
-              py-1
-              text-[10px]
-              font-semibold
-              bg-[#1868A5]/10
-              text-[#1868A5]
-            "
-                                    >
-                                      {order.approver.role}
+                                  ))}
+                                  {!order.items?.some(
+                                    (item: any) =>
+                                      item.vendor?.name || item.vendorName,
+                                  ) && (
+                                    <span className="text-sm font-semibold text-slate-400">
+                                      —
                                     </span>
+                                  )}
+                                </div>
+                              </div>
+
+                              <div>
+                                <p className="text-[10px] uppercase tracking-widest font-bold text-slate-400 mb-1.5">
+                                  Submitted
+                                </p>
+                                <p className="text-sm font-bold text-slate-900">
+                                  {format(
+                                    new Date(order.createdAt),
+                                    "MMM dd, yyyy",
+                                  )}
+                                </p>
+                              </div>
+
+                              <div>
+                                {order.status === "Rejected" ? (
+                                  <div className="space-y-2">
+                                    <div>
+                                      <p className="text-[10px] uppercase tracking-widest font-bold text-red-400 mb-1">
+                                        Rejected By
+                                      </p>
+                                      <p className="text-sm font-bold text-slate-900">
+                                        {order.rejector?.name || "—"}
+                                      </p>
+                                    </div>
+                                    {order.rejectionReason && (
+                                      <div>
+                                        <p className="text-[10px] uppercase tracking-widest font-bold text-red-400 mb-1">
+                                          Reason
+                                        </p>
+                                        <p className="text-xs text-slate-600 leading-relaxed">
+                                          {order.rejectionReason}
+                                        </p>
+                                      </div>
+                                    )}
                                   </div>
                                 ) : (
-                                  <p className="text-sm font-semibold text-slate-900">
-                                    -
-                                  </p>
+                                  <div>
+                                    <p className="text-[10px] uppercase tracking-widest font-bold text-slate-400 mb-1.5">
+                                      Approved By
+                                    </p>
+                                    {order.approver ? (
+                                      <div>
+                                        <p className="text-sm font-bold text-slate-900">
+                                          {order.approver.name}
+                                        </p>
+                                        <span className="inline-flex items-center mt-1 rounded-lg px-2 py-0.5 text-[10px] font-bold bg-[#1868A5]/10 text-[#1868A5]">
+                                          {order.approver.role}
+                                        </span>
+                                      </div>
+                                    ) : (
+                                      <p className="text-sm font-semibold text-slate-400">
+                                        Pending
+                                      </p>
+                                    )}
+                                  </div>
                                 )}
                               </div>
                             </div>
                           </div>
-                        </div>
-                      </div>
 
-                      {/* RIGHT */}
+                          {order.status !== "Rejected" && (
+                            <div className="xl:w-[220px] shrink-0 flex flex-col gap-2.5">
+                              {order.vendor?.email && (
+                                <a
+                                  href={`mailto:${order.vendor.email}`}
+                                  className="block"
+                                >
+                                  <Button
+                                    variant="outline"
+                                    className="w-full h-10 rounded-xl text-sm border-slate-200 hover:border-[#1868A5]/30 hover:bg-[#1868A5]/5"
+                                  >
+                                    <Mail className="w-4 h-4 mr-2 text-slate-400" />
+                                    Email Vendor
+                                  </Button>
+                                </a>
+                              )}
 
-                      <div
-                        className="
-      w-full
-     xl:w-[320px]
-      shrink-0
-      flex
-      flex-col
-      gap-5
-    "
-                      >
-                        {/* STATUS */}
+                              <div className="grid grid-cols-2 gap-2">
+                                <Button
+                                  variant="outline"
+                                  onClick={() => openUploadModal(order)}
+                                  className="h-10 rounded-xl text-sm border-slate-200 hover:border-[#1868A5]/30 hover:bg-[#1868A5]/5"
+                                >
+                                  <Upload className="w-4 h-4 mr-1.5 text-slate-400" />
+                                  Invoice
+                                </Button>
+                                <Link href={`/flights/${order.id}`}>
+                                  <Button
+                                    variant="outline"
+                                    className="w-full h-10 rounded-xl text-sm border-slate-200 hover:border-[#1868A5]/30 hover:bg-[#1868A5]/5"
+                                  >
+                                    <Eye className="w-4 h-4 mr-1.5 text-slate-400" />
+                                    View
+                                  </Button>
+                                </Link>
+                              </div>
 
-                        <div className="space-y-2">
-                          <label className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">
-                            Status
-                          </label>
+                              <DownloadPDFButton order={order} />
 
-                          <Select
-                            value={order.status}
-                            onValueChange={(value) =>
-                              handleStatusChange(order, value)
-                            }
-                          >
-                            <SelectTrigger className="h-12 rounded-2xl">
-                              <SelectValue placeholder="Select status" />
-                            </SelectTrigger>
+                              {order.billUrl && (
+                                <a
+                                  href={order.billUrl}
+                                  target="_blank"
+                                  className="block"
+                                >
+                                  <Button
+                                    variant="outline"
+                                    className="w-full h-10 rounded-xl text-sm border-emerald-200 text-emerald-700 hover:bg-emerald-50"
+                                  >
+                                    <FileText className="w-4 h-4 mr-2" />
+                                    View Invoice
+                                  </Button>
+                                </a>
+                              )}
 
-                            <SelectContent>
-                              {allStatuses.map((status) => (
-                                <SelectItem key={status} value={status}>
-                                  <div className="flex items-center gap-2">
-                                    <div
-                                      className={cn(
-                                        `
-                      w-2.5
-                      h-2.5
-                      rounded-full
-                    `,
-
-                                        status === "Approved" &&
-                                          "bg-emerald-500",
-
-                                        status === "Rejected" && "bg-red-500",
-
-                                        status === "Submitted" && "bg-sky-500",
-
-                                        status === "SentToVendor" &&
-                                          "bg-violet-500",
-
-                                        status === "Confirmed" && "bg-cyan-500",
-
-                                        status === "Completed" && "bg-blue-500",
-
-                                        status === "Cancelled" &&
-                                          "bg-slate-400",
-                                      )}
-                                    />
-
-                                    <span>{status}</span>
-                                  </div>
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
-
-                        {/* BUTTONS */}
-
-                        <div
-                          className="
-        grid
-   grid-cols-1
-sm:grid-cols-2
-        gap-3
-      "
-                        >
-                          {order.vendor?.email && (
-                            <a
-                              href={`mailto:${order.vendor.email}`}
-                              className="col-span-2"
-                            >
-                              <Button
-                                variant="outline"
-                                className="w-full h-11 rounded-2xl"
-                              >
-                                <Mail className="w-4 h-4 mr-2" />
-                                Email Vendor
-                              </Button>
-                            </a>
-                          )}
-
-                          <Button
-                            variant="outline"
-                            onClick={() => openUploadModal(order)}
-                            className="h-11 rounded-2xl"
-                          >
-                            <Upload className="w-4 h-4 mr-2" />
-                            Upload
-                          </Button>
-
-                          <Link href={`/flights/${order.id}`}>
-                            <Button
-                              variant="outline"
-                              className="w-full h-11 rounded-2xl"
-                            >
-                              <Eye className="w-4 h-4 mr-2" />
-                              View
-                            </Button>
-                          </Link>
-
-                          <div className="sm:col-span-2">
-                            <DownloadPDFButton order={order} />
-                          </div>
-
-                          {order.billUrl && (
-                            <a
-                              href={order.billUrl}
-                              target="_blank"
-                              className="col-span-2"
-                            >
-                              <Button
-                                variant="outline"
-                                className="w-full h-11 rounded-2xl"
-                              >
-                                <FileText className="w-4 h-4 mr-2" />
-                                View Invoice
-                              </Button>
-                            </a>
+                              {order.billAmount && (
+                                <div className="mt-1 rounded-2xl bg-slate-50 border border-slate-200 px-4 py-3 text-center">
+                                  <p className="text-[10px] uppercase tracking-widest font-bold text-slate-400 mb-1">
+                                    Bill Amount
+                                  </p>
+                                  <p className="text-lg font-bold text-slate-900">
+                                    ${Number(order.billAmount).toLocaleString()}
+                                  </p>
+                                </div>
+                              )}
+                            </div>
                           )}
                         </div>
                       </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              );
-            })}
-          </div>
-        )}
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+          )}
+        </div>
       </div>
 
-      {/* UPLOAD MODAL */}
-
-      {selectedOrder && (
-        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden">
-            <div className="p-6 border-b border-slate-200 flex items-center justify-between">
+      {confirmDialog && (
+        <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-sm overflow-hidden">
+            <div className="px-7 pt-7 pb-5 flex items-start justify-between">
               <div>
-                <h2 className="text-lg font-bold text-slate-900">
-                  Upload Vendor Invoice
+                <h2 className="text-xl font-bold text-slate-900">
+                  Confirm Status Change
                 </h2>
-
-                <p className="text-sm text-slate-500 mt-1">
-                  Flight {selectedOrder.flightNumber}
+                <p className="text-sm text-slate-400 mt-0.5 flex items-center gap-1.5">
+                  <Plane className="w-3.5 h-3.5" />
+                  Flight {confirmDialog.order.flightNumber}
                 </p>
               </div>
-
               <button
-                onClick={() => setSelectedOrder(null)}
-                className="w-10 h-10 rounded-xl hover:bg-slate-100 flex items-center justify-center"
+                onClick={() => setConfirmDialog(null)}
+                className="w-9 h-9 rounded-xl hover:bg-slate-100 flex items-center justify-center transition-colors mt-0.5"
               >
-                <X className="w-5 h-5 text-slate-500" />
+                <X className="w-4 h-4 text-slate-400" />
               </button>
             </div>
 
-            <div className="p-6 space-y-5">
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-slate-700">
+            <div className="px-7 pb-7 space-y-5">
+              <div className="rounded-2xl bg-slate-50 border border-slate-200 p-4 space-y-3">
+                <div className="flex items-center gap-3 flex-wrap">
+                  <span
+                    className={cn(
+                      "inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold border",
+                      (
+                        statusConfig[confirmDialog.order.status] ||
+                        statusConfig.Submitted
+                      ).bg,
+                      (
+                        statusConfig[confirmDialog.order.status] ||
+                        statusConfig.Submitted
+                      ).color,
+                      (
+                        statusConfig[confirmDialog.order.status] ||
+                        statusConfig.Submitted
+                      ).border,
+                    )}
+                  >
+                    <span
+                      className={cn(
+                        "w-1.5 h-1.5 rounded-full",
+                        (
+                          statusConfig[confirmDialog.order.status] ||
+                          statusConfig.Submitted
+                        ).dot,
+                      )}
+                    />
+                    {statusLabels[confirmDialog.order.status] ??
+                      confirmDialog.order.status}
+                  </span>
+                  <ChevronRight className="w-4 h-4 text-slate-400 shrink-0" />
+                  <span
+                    className={cn(
+                      "inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold border",
+                      (
+                        statusConfig[confirmDialog.targetStatus] ||
+                        statusConfig.Submitted
+                      ).bg,
+                      (
+                        statusConfig[confirmDialog.targetStatus] ||
+                        statusConfig.Submitted
+                      ).color,
+                      (
+                        statusConfig[confirmDialog.targetStatus] ||
+                        statusConfig.Submitted
+                      ).border,
+                    )}
+                  >
+                    <span
+                      className={cn(
+                        "w-1.5 h-1.5 rounded-full",
+                        (
+                          statusConfig[confirmDialog.targetStatus] ||
+                          statusConfig.Submitted
+                        ).dot,
+                      )}
+                    />
+                    {statusLabels[confirmDialog.targetStatus] ??
+                      confirmDialog.targetStatus}
+                  </span>
+                </div>
+                <p className="text-sm text-slate-600">
+                  Are you sure you want to move this order to{" "}
+                  <span className="font-semibold text-slate-900">
+                    {statusLabels[confirmDialog.targetStatus] ??
+                      confirmDialog.targetStatus}
+                  </span>
+                  ?
+                </p>
+              </div>
+
+              <div className="flex gap-3">
+                <Button
+                  variant="outline"
+                  onClick={() => setConfirmDialog(null)}
+                  className="flex-1 h-11 rounded-xl border-slate-200"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  onClick={() =>
+                    handleStatusChange(
+                      confirmDialog.order,
+                      confirmDialog.targetStatus,
+                    )
+                  }
+                  disabled={loadingId === confirmDialog.order.id}
+                  className="flex-1 h-11 rounded-xl bg-[#1868A5] hover:bg-[#1868A5]/90"
+                >
+                  {loadingId === confirmDialog.order.id ? (
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  ) : (
+                    <CheckCircle2 className="w-4 h-4 mr-2" />
+                  )}
+                  Confirm
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {selectedOrder && (
+        <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden">
+            <div className="px-7 pt-7 pb-5 flex items-start justify-between">
+              <div>
+                <h2 className="text-xl font-bold text-slate-900">
+                  Upload Invoice
+                </h2>
+                <p className="text-sm text-slate-400 mt-0.5 flex items-center gap-1.5">
+                  <Plane className="w-3.5 h-3.5" />
+                  Flight {selectedOrder.flightNumber}
+                </p>
+              </div>
+              <button
+                onClick={() => setSelectedOrder(null)}
+                className="w-9 h-9 rounded-xl hover:bg-slate-100 flex items-center justify-center transition-colors mt-0.5"
+              >
+                <X className="w-4 h-4 text-slate-400" />
+              </button>
+            </div>
+
+            <div className="px-7 pb-7 space-y-5">
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold uppercase tracking-wider text-slate-500">
                   Invoice File
                 </label>
-
-                <Input
-                  type="file"
-                  accept=".pdf,.png,.jpg,.jpeg"
-                  onChange={(e) => setBillFile(e.target.files?.[0] || null)}
-                  className="rounded-xl"
-                />
+                <label
+                  className={cn(
+                    "flex items-center justify-center gap-2.5 w-full h-28 rounded-2xl border-2 border-dashed cursor-pointer transition-colors",
+                    billFile
+                      ? "border-[#1868A5]/40 bg-[#1868A5]/5"
+                      : "border-slate-200 bg-slate-50 hover:border-[#1868A5]/30 hover:bg-[#1868A5]/5",
+                  )}
+                >
+                  <input
+                    type="file"
+                    accept=".pdf,.png,.jpg,.jpeg"
+                    onChange={(e) => setBillFile(e.target.files?.[0] || null)}
+                    className="sr-only"
+                  />
+                  <div className="text-center">
+                    <Upload
+                      className={cn(
+                        "w-5 h-5 mx-auto mb-1.5",
+                        billFile ? "text-[#1868A5]" : "text-slate-400",
+                      )}
+                    />
+                    <p className="text-sm font-medium text-slate-600">
+                      {billFile
+                        ? billFile.name
+                        : "Click to upload PDF or image"}
+                    </p>
+                    {!billFile && (
+                      <p className="text-xs text-slate-400 mt-0.5">
+                        PDF, PNG, JPG up to 10MB
+                      </p>
+                    )}
+                  </div>
+                </label>
               </div>
 
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-slate-700">
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold uppercase tracking-wider text-slate-500">
                   Bill Amount
                 </label>
-
-                <Input
-                  type="number"
-                  value={billAmount}
-                  onChange={(e) => setBillAmount(e.target.value)}
-                  placeholder="0.00"
-                  className="rounded-xl"
-                />
+                <div className="relative">
+                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 text-sm font-medium">
+                    $
+                  </span>
+                  <Input
+                    type="number"
+                    value={billAmount}
+                    onChange={(e) => setBillAmount(e.target.value)}
+                    placeholder="0.00"
+                    className="h-11 pl-8 rounded-xl border-slate-200 focus-visible:ring-[#1868A5] focus-visible:border-[#1868A5]"
+                  />
+                </div>
               </div>
 
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-slate-700">
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold uppercase tracking-wider text-slate-500">
                   Notes
                 </label>
-
                 <Textarea
                   value={billNotes}
                   onChange={(e) => setBillNotes(e.target.value)}
-                  placeholder="Vendor remarks..."
-                  className="
-                    min-h-[120px]
-                    rounded-2xl
-                  "
+                  placeholder="Add vendor remarks or billing notes…"
+                  className="min-h-[100px] rounded-xl border-slate-200 focus-visible:ring-[#1868A5] focus-visible:border-[#1868A5] resize-none text-sm"
                 />
+              </div>
+
+              <div className="flex gap-3 pt-2">
+                <Button
+                  variant="outline"
+                  onClick={() => setSelectedOrder(null)}
+                  className="flex-1 h-11 rounded-xl border-slate-200"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  onClick={handleUploadBill}
+                  disabled={loadingId === selectedOrder.id}
+                  className="flex-1 h-11 rounded-xl bg-[#1868A5] hover:bg-[#1868A5]/90"
+                >
+                  {loadingId === selectedOrder.id ? (
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  ) : (
+                    <Upload className="w-4 h-4 mr-2" />
+                  )}
+                  Upload Invoice
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {rejectingOrder && (
+        <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden">
+            <div className="px-7 pt-7 pb-5 flex items-start justify-between">
+              <div>
+                <h2 className="text-xl font-bold text-slate-900">
+                  Reject Order
+                </h2>
+                <p className="text-sm text-slate-400 mt-0.5 flex items-center gap-1.5">
+                  <Plane className="w-3.5 h-3.5" />
+                  Flight {rejectingOrder.flightNumber}
+                </p>
+              </div>
+              <button
+                onClick={() => {
+                  setRejectingOrder(null);
+                  setRejectionReason("");
+                }}
+                className="w-9 h-9 rounded-xl hover:bg-slate-100 flex items-center justify-center transition-colors mt-0.5"
+              >
+                <X className="w-4 h-4 text-slate-400" />
+              </button>
+            </div>
+
+            <div className="px-7 pb-7 space-y-5">
+              <div className="flex items-start gap-3 bg-red-50 border border-red-100 rounded-2xl p-4">
+                <AlertCircle className="w-4 h-4 text-red-500 shrink-0 mt-0.5" />
+                <p className="text-sm text-red-700 leading-relaxed">
+                  Please provide a reason for rejecting this order. This will be
+                  visible to the submitter.
+                </p>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold uppercase tracking-wider text-slate-500">
+                  Rejection Reason
+                </label>
+                <Textarea
+                  value={rejectionReason}
+                  onChange={(e) => setRejectionReason(e.target.value)}
+                  placeholder="Incorrect quantities, missing details, dietary issue…"
+                  className="min-h-[130px] rounded-xl border-slate-200 focus-visible:ring-red-400 focus-visible:border-red-300 resize-none text-sm"
+                />
+              </div>
+
+              <div className="flex gap-3 pt-1">
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setRejectingOrder(null);
+                    setRejectionReason("");
+                  }}
+                  className="flex-1 h-11 rounded-xl border-slate-200"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  onClick={handleReject}
+                  disabled={
+                    !rejectionReason.trim() || loadingId === rejectingOrder.id
+                  }
+                  className="flex-1 h-11 rounded-xl bg-red-600 hover:bg-red-700 text-white"
+                >
+                  {loadingId === rejectingOrder.id ? (
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  ) : (
+                    <X className="w-4 h-4 mr-2" />
+                  )}
+                  Confirm Reject
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {restoreOrder && (
+        <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden flex flex-col max-h-[90vh]">
+            <div className="px-7 pt-7 pb-5 flex items-start justify-between shrink-0">
+              <div>
+                <h2 className="text-xl font-bold text-slate-900">
+                  Restore Items
+                </h2>
+                <p className="text-sm text-slate-400 mt-0.5 flex items-center gap-1.5">
+                  <Plane className="w-3.5 h-3.5" />
+                  Flight {restoreOrder.flightNumber} — enter quantities returned
+                  after the trip
+                </p>
+              </div>
+              <button
+                onClick={() => {
+                  setRestoreOrder(null);
+                  setRestoreItems([]);
+                }}
+                className="w-9 h-9 rounded-xl hover:bg-slate-100 flex items-center justify-center transition-colors mt-0.5"
+              >
+                <X className="w-4 h-4 text-slate-400" />
+              </button>
+            </div>
+
+            <div className="px-7 pb-4 shrink-0">
+              <div className="flex items-start gap-3 bg-emerald-50 border border-emerald-100 rounded-2xl p-4">
+                <RefreshCcw className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                <p className="text-sm text-emerald-700 leading-relaxed">
+                  Enter how many units of each item were returned unused after
+                  the flight. Leave at 0 if fully consumed.
+                </p>
               </div>
             </div>
 
-            <div className="p-6 border-t border-slate-200 bg-slate-50 flex flex-col sm:flex-row justify-end gap-3">
+            <div className="px-7 py-2 overflow-y-auto flex-1 space-y-2.5">
+              {restoreItems.length === 0 ? (
+                <div className="py-10 flex flex-col items-center justify-center text-slate-400">
+                  <Package className="w-8 h-8 mb-2" />
+                  <p className="text-sm">No items found for this order.</p>
+                </div>
+              ) : (
+                restoreItems.map((item) => (
+                  <div
+                    key={item.id}
+                    className="flex items-center justify-between gap-4 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3"
+                  >
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold text-slate-900 truncate">
+                        {item.name}
+                      </p>
+                      <p className="text-xs text-slate-400 mt-0.5">
+                        Ordered:{" "}
+                        <span className="font-semibold text-slate-600">
+                          {item.quantity}
+                          {item.unit ? ` ${item.unit}` : ""}
+                        </span>
+                        {item.category && (
+                          <span className="ml-2 text-slate-400">
+                            · {item.category}
+                          </span>
+                        )}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <button
+                        onClick={() => handleRestoreQtyChange(item.id, -1)}
+                        disabled={item.returnedQty === 0}
+                        className="w-8 h-8 rounded-xl border border-slate-200 bg-white flex items-center justify-center hover:bg-slate-100 disabled:opacity-40 transition-colors"
+                      >
+                        <Minus className="w-3.5 h-3.5 text-slate-600" />
+                      </button>
+                      <div className="w-10 text-center">
+                        <span
+                          className={cn(
+                            "text-base font-bold",
+                            item.returnedQty > 0
+                              ? "text-emerald-600"
+                              : "text-slate-400",
+                          )}
+                        >
+                          {item.returnedQty}
+                        </span>
+                      </div>
+                      <button
+                        onClick={() => handleRestoreQtyChange(item.id, 1)}
+                        disabled={item.returnedQty >= item.quantity}
+                        className="w-8 h-8 rounded-xl border border-slate-200 bg-white flex items-center justify-center hover:bg-slate-100 disabled:opacity-40 transition-colors"
+                      >
+                        <Plus className="w-3.5 h-3.5 text-slate-600" />
+                      </button>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+
+            <div className="px-7 py-5 border-t border-slate-100 shrink-0 flex gap-3">
               <Button
                 variant="outline"
-                onClick={() => setSelectedOrder(null)}
-                className="rounded-xl"
+                onClick={() => {
+                  setRestoreOrder(null);
+                  setRestoreItems([]);
+                }}
+                className="flex-1 h-11 rounded-xl border-slate-200"
               >
                 Cancel
               </Button>
-
               <Button
-                onClick={handleUploadBill}
-                disabled={loadingId === selectedOrder.id}
-                className="rounded-xl"
+                onClick={handleRestoreSubmit}
+                disabled={restoreLoading}
+                className="flex-1 h-11 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white"
               >
-                {loadingId === selectedOrder.id ? (
+                {restoreLoading ? (
                   <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                 ) : (
-                  <Upload className="w-4 h-4 mr-2" />
+                  <RefreshCcw className="w-4 h-4 mr-2" />
                 )}
-                Upload Invoice
+                Save Restored Items
               </Button>
             </div>
           </div>

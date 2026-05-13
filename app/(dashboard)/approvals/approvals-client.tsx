@@ -29,6 +29,7 @@ interface Flight {
   status: string;
   rejectionReason?: string | null;
   createdAt: string;
+  updatedAt: string;
   date?: string;
 
   creator: {
@@ -207,7 +208,7 @@ export default function ApprovalsClient({ flights, currentUser }: Props) {
                               Submitted:{" "}
                               <span className="font-medium text-slate-700">
                                 {format(
-                                  new Date(flight.createdAt),
+                                  new Date(flight.updatedAt),
                                   "MMM dd, yyyy hh:mm a",
                                 )}
                               </span>

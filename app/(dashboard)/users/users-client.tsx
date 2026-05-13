@@ -21,6 +21,9 @@ import {
   Users,
   X,
   KeyRound,
+  Pencil,
+  EyeOff,
+  Eye,
 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
@@ -54,9 +57,20 @@ export default function UsersClient({ users: initialUsers }: Props) {
 
   const [deleteUser, setDeleteUser] = useState<User | null>(null);
 
-  const [passwordUser, setPasswordUser] = useState<User | null>(null);
+  const [editUser, setEditUser] = useState<User | null>(null);
+  const [showAddPassword, setShowAddPassword] = useState(false);
 
-  const [newPassword, setNewPassword] = useState("");
+  const [showEditPassword, setShowEditPassword] = useState(false);
+
+  const [editForm, setEditForm] = useState({
+    name: "",
+    email: "",
+    password: "",
+    role: "crew",
+    image: "",
+  });
+  const [editImageFile, setEditImageFile] = useState<File | null>(null);
+
   // const [rolePermissions, setRolePermissions] = useState({
   //   admin: [
   //     "view_dashboard",
@@ -213,21 +227,65 @@ export default function UsersClient({ users: initialUsers }: Props) {
     }
   };
 
-  const handleChangePassword = async () => {
+  const handleEditUser = async () => {
     try {
-      if (!passwordUser) return;
+      if (!editUser) return;
 
       setLoading(true);
 
-      await axios.patch(`/api/users/${passwordUser.id}/password`, {
-        password: newPassword,
+      let imageUrl = editForm.image;
+
+      // IMAGE UPLOAD
+      if (editImageFile) {
+        const formData = new FormData();
+
+        formData.append("file", editImageFile);
+
+        const uploadRes = await axios.post("/api/upload", formData, {
+          headers: {
+            "Content-Type": "multipart/form-data",
+          },
+        });
+
+        imageUrl = uploadRes.data.url;
+      }
+
+      const res = await axios.patch(`/api/users/${editUser.id}`, {
+        name: editForm.name,
+        email: editForm.email,
+        password: editForm.password,
+        role: editForm.role,
+        image: imageUrl,
       });
 
-      setPasswordUser(null);
+      setUsers((prev) =>
+        prev.map((u) => (u.id === editUser.id ? res.data : u)),
+      );
 
-      setNewPassword("");
+      setEditUser(null);
+
+      setEditImageFile(null);
+
+      setEditForm({
+        name: "",
+        email: "",
+        password: "",
+        role: "crew",
+        image: "",
+      });
+
+      toast({
+        title: "Success",
+        description: "User updated successfully.",
+      });
     } catch (error) {
       console.error(error);
+
+      toast({
+        title: "Error",
+        description: "Failed to update user.",
+        variant: "destructive",
+      });
     } finally {
       setLoading(false);
     }
@@ -494,17 +552,28 @@ export default function UsersClient({ users: initialUsers }: Props) {
                     <Button
                       variant="outline"
                       className="
-            h-11
-            rounded-2xl
-            border-[#1868A5]/20
-            hover:bg-[#1868A5]
-            hover:text-white
-            transition-all
-          "
-                      onClick={() => setPasswordUser(user)}
+    h-11
+    rounded-2xl
+    border-[#1868A5]/20
+    hover:bg-[#1868A5]
+    hover:text-white
+    transition-all
+  "
+                      onClick={() => {
+                        setEditUser(user);
+
+                        setEditForm({
+                          name: user.name || "",
+                          email: user.email || "",
+                          password: "",
+                          role: user.role || "crew",
+                          image: user.image || "",
+                        });
+                        setEditImageFile(null);
+                      }}
                     >
-                      <KeyRound className="w-4 h-4 mr-2" />
-                      Password
+                      <Pencil className="w-4 h-4 mr-2" />
+                      Edit
                     </Button>
 
                     <Button
@@ -757,18 +826,39 @@ export default function UsersClient({ users: initialUsers }: Props) {
                   Password
                 </label>
 
-                <Input
-                  type="password"
-                  value={newUser.password}
-                  onChange={(e) =>
-                    setNewUser({
-                      ...newUser,
-                      password: e.target.value,
-                    })
-                  }
-                  placeholder="••••••••"
-                  className="rounded-2xl h-12"
-                />
+                <div className="relative">
+                  <Input
+                    type={showAddPassword ? "text" : "password"}
+                    value={newUser.password}
+                    onChange={(e) =>
+                      setNewUser({
+                        ...newUser,
+                        password: e.target.value,
+                      })
+                    }
+                    placeholder="••••••••"
+                    className="rounded-2xl h-12 pr-12"
+                  />
+
+                  <button
+                    type="button"
+                    onClick={() => setShowAddPassword(!showAddPassword)}
+                    className="
+        absolute
+        right-3
+        top-1/2
+        -translate-y-1/2
+        text-slate-500
+        hover:text-slate-700
+      "
+                  >
+                    {showAddPassword ? (
+                      <EyeOff className="w-5 h-5" />
+                    ) : (
+                      <Eye className="w-5 h-5" />
+                    )}
+                  </button>
+                </div>
               </div>
 
               <div className="space-y-2">
@@ -885,60 +975,265 @@ export default function UsersClient({ users: initialUsers }: Props) {
         </div>
       )}
 
-      {/* PASSWORD MODAL */}
+      {/* EDIT USER MODAL */}
 
-      {passwordUser && (
+      {/* EDIT USER MODAL */}
+
+      {editUser && (
         <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden">
-            <div className="p-6 border-b border-slate-200 flex items-center justify-between">
+          <div
+            className="
+        bg-white
+        rounded-3xl
+        shadow-2xl
+        w-full
+        max-w-lg
+        h-[80vh]
+        overflow-hidden
+        flex
+        flex-col
+      "
+          >
+            {/* HEADER */}
+
+            <div
+              className="
+          p-6
+          border-b
+          border-slate-200
+          flex
+          items-center
+          justify-between
+          shrink-0
+        "
+            >
               <div>
-                <h2 className="text-lg font-bold text-slate-900">
-                  Change Password
-                </h2>
+                <h2 className="text-xl font-bold text-slate-900">Edit User</h2>
 
                 <p className="text-sm text-slate-500 mt-1">
-                  {passwordUser.name}
+                  Update user details.
                 </p>
               </div>
 
               <button
-                onClick={() => setPasswordUser(null)}
-                className="w-10 h-10 rounded-xl hover:bg-[#1868A5] flex items-center justify-center hover:rotate-90 transition-transform duration-300"
+                onClick={() => setEditUser(null)}
+                className="
+            w-10
+            h-10
+            rounded-xl
+            hover:bg-slate-100
+            flex
+            items-center
+            justify-center
+          "
               >
-                <X className="w-5 h-5 text-slate-900 hover:text-white transition-transform duration-300 " />
+                <X className="w-5 h-5 text-slate-500" />
               </button>
             </div>
 
-            <div className="p-6">
+            {/* SCROLLABLE CONTENT */}
+
+            <div
+              className="
+          flex-1
+          overflow-y-auto
+          p-6
+          space-y-5
+        "
+            >
+              {/* EXISTING IMAGE */}
+
+              <div className="space-y-3">
+                <label className="text-sm font-medium text-slate-700">
+                  Profile Image
+                </label>
+
+                <div className="flex items-center gap-4">
+                  <div
+                    className="
+                w-24
+                h-24
+                rounded-2xl
+                overflow-hidden
+                border
+                border-slate-200
+                bg-slate-100
+                shrink-0
+              "
+                  >
+                    {(editImageFile || editForm.image) && (
+                      <img
+                        src={
+                          editImageFile
+                            ? URL.createObjectURL(editImageFile)
+                            : editForm.image
+                        }
+                        alt="Profile"
+                        className="w-full h-full object-cover"
+                      />
+                    )}
+                  </div>
+
+                  <Input
+                    type="file"
+                    accept="image/*"
+                    className="rounded-2xl"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+
+                      if (file) {
+                        setEditImageFile(file);
+                      }
+                    }}
+                  />
+                </div>
+              </div>
+
+              {/* NAME */}
+
               <div className="space-y-2">
                 <label className="text-sm font-medium text-slate-700">
-                  New Password
+                  Full Name
                 </label>
 
                 <Input
-                  type="password"
-                  value={newPassword}
-                  onChange={(e) => setNewPassword(e.target.value)}
-                  placeholder="••••••••"
+                  value={editForm.name}
+                  onChange={(e) =>
+                    setEditForm({
+                      ...editForm,
+                      name: e.target.value,
+                    })
+                  }
                   className="rounded-2xl h-12"
                 />
               </div>
+
+              {/* EMAIL */}
+
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-slate-700">
+                  Email
+                </label>
+
+                <Input
+                  type="email"
+                  value={editForm.email}
+                  onChange={(e) =>
+                    setEditForm({
+                      ...editForm,
+                      email: e.target.value,
+                    })
+                  }
+                  className="rounded-2xl h-12"
+                />
+              </div>
+
+              {/* PASSWORD */}
+
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-slate-700">
+                  Password
+                </label>
+
+                <div className="relative">
+                  <Input
+                    type={showEditPassword ? "text" : "password"}
+                    value={editForm.password}
+                    onChange={(e) =>
+                      setEditForm({
+                        ...editForm,
+                        password: e.target.value,
+                      })
+                    }
+                    placeholder="Leave empty to keep current password"
+                    className="rounded-2xl h-12 pr-12"
+                  />
+
+                  <button
+                    type="button"
+                    onClick={() => setShowEditPassword(!showEditPassword)}
+                    className="
+        absolute
+        right-3
+        top-1/2
+        -translate-y-1/2
+        text-slate-500
+        hover:text-slate-700
+      "
+                  >
+                    {showEditPassword ? (
+                      <EyeOff className="w-5 h-5" />
+                    ) : (
+                      <Eye className="w-5 h-5" />
+                    )}
+                  </button>
+                </div>
+              </div>
+
+              {/* ROLE */}
+
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-slate-700">
+                  Role
+                </label>
+
+                <Select
+                  value={editForm.role}
+                  onValueChange={(value) =>
+                    setEditForm({
+                      ...editForm,
+                      role: value,
+                    })
+                  }
+                >
+                  <SelectTrigger className="rounded-2xl h-12">
+                    <SelectValue />
+                  </SelectTrigger>
+
+                  <SelectContent>
+                    <SelectItem value="crew">Crew</SelectItem>
+
+                    <SelectItem value="pilot">Pilot</SelectItem>
+
+                    <SelectItem value="director">Director</SelectItem>
+
+                    <SelectItem value="admin">Admin</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
 
-            <div className="p-6 border-t border-slate-200 bg-slate-50 flex flex-col sm:flex-row justify-end gap-3">
+            {/* FOOTER */}
+
+            <div
+              className="
+          p-6
+          border-t
+          border-slate-200
+          bg-slate-50
+          flex
+          flex-col
+          sm:flex-row
+          justify-end
+          gap-3
+          shrink-0
+        "
+            >
               <Button
                 variant="outline"
-                onClick={() => setPasswordUser(null)}
-                className="rounded-2xl w-full sm:w-auto bg-white hover:bg-red-600/80 text-black hover:text-white transition-transform duration-300"
+                onClick={() => setEditUser(null)}
+                className="rounded-2xl w-full sm:w-auto"
               >
                 Cancel
               </Button>
 
               <Button
-                onClick={handleChangePassword}
-                className="rounded-2xl w-full sm:w-auto bg-[#1868A5] hover:bg-[#004b84] text-white hover:text-white transition-transform duration-300"
+                onClick={handleEditUser}
+                disabled={loading}
+                className="rounded-2xl w-full sm:w-auto"
               >
-                Update Password
+                {loading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                Update User
               </Button>
             </div>
           </div>
