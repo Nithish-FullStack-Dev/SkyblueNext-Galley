@@ -1,44 +1,43 @@
 // app\api\users\[id]\route.ts
 
 import { NextRequest, NextResponse } from "next/server";
-
 import prisma from "@/lib/prisma";
-import { auth } from "@/lib/auth";
+import bcrypt from "bcryptjs";
 
 export async function DELETE(
-    req: Request,
-    {
-        params,
-    }: {
-        params: {
-            id: string;
-        };
-    }
+  req: Request,
+  {
+    params,
+  }: {
+    params: {
+      id: string;
+    };
+  },
 ) {
-    try {
-        await prisma.user.delete({
-            where: {
-                id: params.id,
-            },
-        });
+  try {
+    await prisma.user.delete({
+      where: {
+        id: params.id,
+      },
+    });
 
-        return NextResponse.json({
-            success: true,
-        });
-    } catch (error) {
-        console.error(error);
+    return NextResponse.json({
+      success: true,
+    });
+  } catch (error) {
+    console.error(error);
 
-        return NextResponse.json(
-            {
-                error:
-                    "Failed to delete user",
-            },
-            {
-                status: 500,
-            }
-        );
-    }
+    return NextResponse.json(
+      {
+        error: "Failed to delete user",
+      },
+      {
+        status: 500,
+      },
+    );
+  }
 }
+
 export async function PATCH(
   req: NextRequest,
   {
@@ -47,55 +46,67 @@ export async function PATCH(
     params: {
       id: string;
     };
-  }
+  },
 ) {
   try {
-    const session = await auth();
+    const body = await req.json();
 
-    if (!session?.user?.id) {
+    const { name, email, password, role, image } = body;
+
+    const existing = await prisma.user.findFirst({
+      where: {
+        email,
+        NOT: {
+          id: params.id,
+        },
+      },
+    });
+
+    if (existing) {
       return NextResponse.json(
         {
-          error: "Unauthorized",
+          error: "Email already exists",
         },
         {
-          status: 401,
-        }
+          status: 400,
+        },
       );
     }
 
-    const body = await req.json();
+    let hashedPassword;
 
-    const {
-      name,
-      image,
-    } = body;
+    if (password && password.trim() !== "") {
+      hashedPassword = await bcrypt.hash(password, 10);
+    }
 
-    const updated =
-      await prisma.user.update({
-        where: {
-          id: params.id,
-        },
+    const updated = await prisma.user.update({
+      where: {
+        id: params.id,
+      },
 
-        data: {
-          name,
-          image,
-        },
-      });
+      data: {
+        name,
+        email,
+        role,
+        image,
 
-    return NextResponse.json(
-      updated
-    );
+        ...(hashedPassword && {
+          password: hashedPassword,
+        }),
+      },
+    });
+
+    return NextResponse.json(updated);
   } catch (error) {
     console.error(error);
 
     return NextResponse.json(
       {
-        error:
-          "Failed to update profile",
+        error: "Failed to update user",
       },
       {
         status: 500,
-      }
+      },
     );
   }
 }
