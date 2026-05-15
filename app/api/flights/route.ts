@@ -94,6 +94,8 @@ export async function POST(req: Request) {
       dietaryNotes,
       serviceStyleNotes,
       specialInstructions,
+      deliveryDate,
+      deliveryTime
     } = body;
 
     // VALIDATIONS
@@ -104,7 +106,6 @@ export async function POST(req: Request) {
         { status: 400 },
       );
     }
-
     if (!arrival?.trim()) {
       return NextResponse.json(
         { error: "Arrival airport required" },
@@ -156,6 +157,9 @@ export async function POST(req: Request) {
 
         specialInstructions: specialInstructions || "",
 
+        deliveryDate: body.deliveryDate || null,
+        deliveryTime: body.deliveryTime || null,
+
         status: "Draft",
 
         createdBy: (session.user as any).id,
@@ -163,31 +167,31 @@ export async function POST(req: Request) {
         items: {
           create: Array.isArray(items)
             ? items.map((item: any) => ({
-                itemId: item.itemId || "custom",
+              itemId: item.itemId || "custom",
 
-                vendorId: item.vendorId || null,
+              vendorId: item.vendorId || null,
 
-                name: item.name || "Custom Item",
+              name: item.name || "Custom Item",
 
-                type: item.type || "custom",
+              type: item.type || "custom",
 
-                quantity: Number(item.quantity) || 1,
+              quantity: Number(item.quantity) || 1,
 
-                notes: item.notes || "",
+              notes: item.notes || "",
 
-                unit: item.unit || "",
+              unit: item.unit || "",
 
-                category: item.category || "",
+              category: item.category || "",
 
-                price:
-                  item.price !== undefined && item.price !== null
-                    ? Number(item.price)
-                    : null,
+              price:
+                item.price !== undefined && item.price !== null
+                  ? Number(item.price)
+                  : null,
 
-                dietaryTags: Array.isArray(item.dietaryTags)
-                  ? item.dietaryTags
-                  : [],
-              }))
+              dietaryTags: Array.isArray(item.dietaryTags)
+                ? item.dietaryTags
+                : [],
+            }))
             : [],
         },
       },

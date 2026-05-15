@@ -4,8 +4,12 @@ import prisma from "@/lib/prisma";
 
 export async function GET(req: Request, { params }: { params: { id: string } }) {
   const items = await prisma.vendorMenuItem.findMany({
-    where: { vendorId: params.id },
-    orderBy: { category: 'asc' }
+    where: {
+      vendorId: params.id,
+    },
+    orderBy: {
+      category: "asc",
+    },
   });
   return NextResponse.json(items);
 }
@@ -69,11 +73,13 @@ export async function POST(req: Request, { params }: { params: { id: string } })
         .filter((item: any) => item.name && item.name.trim() !== "")
         .map((item: any) => ({
           name: item.name,
+
           category: item.category || "Uncategorized",
+
           description: item.description || "",
+
           price: parseFloat(item.price) || 0,
 
-          // Use CSV currency OR vendor currency
           currency: item.currency || vendor.currency || "INR",
 
           dietaryTags: item.dietaryTags
@@ -85,6 +91,7 @@ export async function POST(req: Request, { params }: { params: { id: string } })
             : [],
 
           isAvailable: true,
+
           vendorId: vendorId,
         }));
 

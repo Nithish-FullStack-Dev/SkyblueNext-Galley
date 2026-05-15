@@ -1,3 +1,4 @@
+// components\download-pdf-button.tsx
 "use client";
 
 import React from "react";
@@ -129,7 +130,7 @@ const styles = StyleSheet.create({
   },
 
   colItem: {
-    width: "28%",
+    width: "25%",
     paddingRight: 6,
   },
 
@@ -139,24 +140,24 @@ const styles = StyleSheet.create({
   },
 
   colQty: {
-    width: "10%",
+    width: "5%",
     textAlign: "center",
   },
 
   colPrice: {
-    width: "14%",
+    width: "10%",
     textAlign: "right",
     paddingRight: 6,
   },
 
   colTotal: {
-    width: "14%",
+    width: "10%",
     textAlign: "right",
     paddingRight: 6,
   },
 
   colNotes: {
-    width: "10%",
+    width: "28%",
     textAlign: "left",
   },
 
@@ -406,14 +407,6 @@ function OrderPDF({ order }: any) {
               {grandTotal.toLocaleString()}
             </Text>
           </View>
-        </View>
-
-        {/* FOOTER */}
-
-        <View style={styles.footer}>
-          <Text>Order ID: {order.id}</Text>
-
-          <Text>Generated: {new Date().toLocaleString()}</Text>
         </View>
       </Page>
     </Document>

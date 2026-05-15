@@ -77,6 +77,9 @@ export async function PUT(
       data: {
         ...flightData,
 
+        deliveryDate: body.deliveryDate || null,
+        deliveryTime: body.deliveryTime || null,
+
         paxCount: Number(flightData.paxCount),
 
         crewCount: Number(flightData.crewCount),

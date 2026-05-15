@@ -26,7 +26,10 @@ export async function POST(req: Request) {
     const items = await prisma.catalogItem.createMany({
       data: body.map((item) => ({
         ...item,
-        defaultQty: parseInt(item.defaultQty) || 1,
+        type: item.type?.toLowerCase()?.trim(),
+        defaultQty: item.defaultQty
+          ? parseInt(item.defaultQty)
+          : null,
         price: Number(item.price) || 0,
         currency: item.currency || "INR",
         isAvailable:

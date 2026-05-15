@@ -49,6 +49,7 @@ enum OrderStatus {
   Approved
   SentToVendor
   Confirmed
+  Delivered
   Completed
   Rejected
   Cancelled
@@ -69,6 +70,11 @@ model FlightOrder {
   serviceStyleNotes   String?
   specialInstructions String?
   pickupLocation      String?
+
+  deliveryDate String?
+
+  deliveryTime String?
+
   status              OrderStatus @default(Draft)
   rejectionReason     String?
   billUrl             String?
@@ -85,11 +91,13 @@ model FlightOrder {
   approvedBy String?
   approvedAt DateTime?
   approver   User?   @relation("ApprovedBy", fields: [approvedBy], references: [id])
-rejectedBy String?
-rejectedAt DateTime?
-rejector   User?   @relation("RejectedBy", fields: [rejectedBy], references: [id])
+  rejectedBy String?
+  rejectedAt DateTime?
+  rejector   User?   @relation("RejectedBy", fields: [rejectedBy], references: [id])
 
   items OrderItem[]
+
+  restoredItems RestoredItem[]
 }
 
 model OrderItem {
@@ -108,6 +116,10 @@ model OrderItem {
   unit        String?
   dietaryTags String[]
 
+  restoredQuantity Int @default(0)
+
+  consumedQuantity Int @default(0)
+
   orderId String
   order   FlightOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
 
@@ -115,6 +127,21 @@ model OrderItem {
   vendor   Vendor? @relation(fields: [vendorId], references: [id])
 
   createdAt DateTime @default(now())
+}
+model RestoredItem {
+  id            String   @id @default(cuid())
+
+  flightOrderId String
+
+  itemId        String
+
+  returnedQty   Int
+
+  restoredBy    String?
+
+  restoredAt    DateTime @default(now())
+
+  flightOrder FlightOrder @relation(fields: [flightOrderId], references: [id], onDelete: Cascade)
 }
 
 model Vendor {
@@ -142,7 +169,8 @@ model VendorMenuItem {
   name          String
   description   String?
   price         Float
-  currency      String   @default("USD")
+    type          String   @default("food")
+  currency      String   @default("INR")
   category      String
   dietaryTags   String[]
   allergens     String[]
@@ -169,12 +197,14 @@ model CatalogItem {
 
   currency    String  @default("INR")
 
+  stock       Int     @default(0)
+
   isAvailable Boolean @default(true)
 
   dietaryTags String[]
   allergens   String[]
 
-  defaultQty  Int      @default(1)
+  defaultQty  Int?
 
   isFavorite  Boolean  @default(false)
 

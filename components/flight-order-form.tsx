@@ -14,6 +14,7 @@ import {
   ArrowLeft,
   Utensils,
   Store,
+  ChevronDown,
 } from "lucide-react";
 
 import axios from "axios";
@@ -31,14 +32,6 @@ import {
 import { Label } from "@/components/ui/label";
 
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-
-import {
   Table,
   TableBody,
   TableCell,
@@ -49,6 +42,7 @@ import {
 
 import { useToast } from "@/components/ui/use-toast";
 import DownloadPDFButton from "./download-pdf-button";
+import VendorPDFButton from "./vendor-pdf-button";
 
 interface FlightOrderFormProps {
   id?: string;
@@ -101,6 +95,11 @@ export default function FlightOrderForm({
   const [catalogFilter, setCatalogFilter] = useState("All");
 
   const [loading, setLoading] = useState(false);
+  const [categoryFilter, setCategoryFilter] = useState("All");
+  useEffect(() => {
+    setCategoryFilter("All");
+  }, [catalogFilter, selectedVendorIds]);
+  const [flightOpen, setFlightOpen] = useState(true);
 
   const {
     register,
@@ -119,13 +118,15 @@ export default function FlightOrderForm({
       date: new Date().toISOString().slice(0, 16),
       paxCount: 1,
       crewCount: 1,
-      timezone: "GST (UTC+4)",
+      timezone: "IST (UTC+5:30)",
       pickupLocation: "",
       dietaryNotes: "",
       serviceStyleNotes: "",
       specialInstructions: "",
       status: "Draft",
       items: [],
+      deliveryDate: "",
+      deliveryTime: "",
     },
   });
 
@@ -149,7 +150,12 @@ export default function FlightOrderForm({
         if (initialData) {
           reset({
             ...initialData,
-
+            date:
+              initialData.date && initialData.departureTime
+                ? `${
+                    new Date(initialData.date).toISOString().split("T")[0]
+                  }T${initialData.departureTime}`
+                : "",
             items:
               initialData.items?.map((item: any) => ({
                 ...item,
@@ -160,6 +166,8 @@ export default function FlightOrderForm({
 
                 vendor: item.vendor || null,
               })) || [],
+            deliveryDate: initialData.deliveryDate || "",
+            deliveryTime: initialData.deliveryTime || "",
           });
         }
       } catch (error) {
@@ -183,7 +191,7 @@ export default function FlightOrderForm({
         );
 
         const merged = responses.flatMap((r) => r.data);
-
+        console.log("VENDOR MENU RESPONSE", merged);
         setVendorItems(merged);
       } catch (error) {
         console.error(error);
@@ -200,18 +208,74 @@ export default function FlightOrderForm({
       if (item.isAvailable === false) {
         return false;
       }
+      const itemType =
+        item.type?.toLowerCase()?.trim() ||
+        (item.category?.toLowerCase().includes("grocery") ? "grocery" : "food");
 
+      const itemCategory = item.category || "";
       const matchesSearch = item.name
         ?.toLowerCase()
         .includes(catalogSearch.toLowerCase());
 
-      const matchesFilter =
-        catalogFilter === "All" || item.type === catalogFilter;
+      const matchesType =
+        catalogFilter === "All"
+          ? true
+          : itemType === catalogFilter.toLowerCase().trim();
 
-      return matchesSearch && matchesFilter;
+      const matchesCategory =
+        categoryFilter === "All" || itemCategory === categoryFilter;
+
+      return matchesSearch && matchesType && matchesCategory;
     });
-  }, [vendorItems, catalog, catalogSearch, catalogFilter, selectedVendorIds]);
+  }, [
+    vendorItems,
+    catalog,
+    catalogSearch,
+    catalogFilter,
+    categoryFilter,
+    selectedVendorIds,
+  ]);
+
+  const availableCategories = useMemo(() => {
+    const source = selectedVendorIds.length > 0 ? vendorItems : catalog;
+
+    const filteredByType =
+      catalogFilter === "All"
+        ? source
+        : source.filter((item: any) => {
+            // FALLBACK TYPE
+            const itemType =
+              item.type?.toLowerCase()?.trim() ||
+              (item.category?.toLowerCase().includes("grocery")
+                ? "grocery"
+                : "food");
+
+            return itemType === catalogFilter.toLowerCase().trim();
+          });
+
+    const uniqueCategories = Array.from(
+      new Set(filteredByType.map((item: any) => item.category).filter(Boolean)),
+    );
+
+    return uniqueCategories;
+  }, [catalog, vendorItems, selectedVendorIds, catalogFilter]);
   const addItemToOrder = (item: any) => {
+    const existingIndex = watchItems.findIndex(
+      (orderItem: any) =>
+        orderItem.itemId === (item.catalogItemId || item.id) &&
+        orderItem.vendorId === (item.vendorId || null),
+    );
+
+    // IF ITEM ALREADY EXISTS → INCREASE QTY
+    if (existingIndex !== -1) {
+      const currentQty = Number(watchItems[existingIndex]?.quantity) || 1;
+
+      setValue(`items.${existingIndex}.quantity`, currentQty + 1);
+
+      return;
+    }
+
+    // OTHERWISE ADD NEW ITEM
     const vendor = vendors.find((v) => v.id === item.vendorId);
 
     append({
@@ -219,7 +283,6 @@ export default function FlightOrderForm({
 
       vendorId: item.vendorId || null,
 
-      // IMPORTANT
       vendorName: vendor?.name || null,
 
       vendor: vendor || null,
@@ -250,7 +313,8 @@ export default function FlightOrderForm({
 
       const payload = {
         ...data,
-
+        deliveryDate: data.deliveryDate || null,
+        deliveryTime: data.deliveryTime || null,
         items: data.items.map((item: any) => ({
           ...item,
 
@@ -292,7 +356,7 @@ export default function FlightOrderForm({
       setLoading(false);
     }
   };
-  const watchItems = watch("items") || [];
+  const watchItems = watch("items", fields);
 
   const vendorTotals = watchItems.reduce((acc: any, item: any) => {
     const key = item.vendorName || item.vendor?.name || "Global Catalog";
@@ -307,6 +371,19 @@ export default function FlightOrderForm({
   const grandTotal = Object.values(vendorTotals).reduce(
     (sum: any, total: any) => sum + Number(total),
     0,
+  );
+  const usedVendors = Array.from(
+    new Map(
+      watchItems
+        ?.filter((item: any) => item.vendorId)
+        .map((item: any) => [
+          item.vendorId,
+          {
+            vendorId: item.vendorId,
+            vendorName: item.vendorName || item.vendor?.name || "Vendor",
+          },
+        ]),
+    ).values(),
   );
   return (
     <div className="space-y-8">
@@ -335,7 +412,37 @@ export default function FlightOrderForm({
         </div>
 
         <div className="flex flex-col sm:flex-row gap-3">
-          {isReviewMode && <DownloadPDFButton order={initialData} />}
+          {isReviewMode && (
+            <div className="flex flex-wrap gap-3">
+              {/* OVERALL PDF */}
+              <DownloadPDFButton order={initialData} />
+
+              {/* VENDOR PDFs */}
+              {usedVendors.map((vendor: any) => (
+                <VendorPDFButton
+                  key={vendor.vendorId}
+                  order={initialData}
+                  vendorId={vendor.vendorId}
+                  vendorName={vendor.vendorName}
+                />
+              ))}
+
+              {/* SUBMIT */}
+              <Button
+                onClick={handleSubmit((data) =>
+                  onSubmit({
+                    ...data,
+                    status: "Submitted",
+                  }),
+                )}
+                disabled={loading}
+                className="rounded-2xl bg-[#1868A5] text-white hover:bg-[#145588]"
+              >
+                <Send className="mr-2 h-4 w-4" />
+                Submit Changes
+              </Button>
+            </div>
+          )}
 
           {!isReviewMode && (
             <>
@@ -373,95 +480,120 @@ export default function FlightOrderForm({
         <div className="xl:col-span-2 space-y-8">
           {/* FLIGHT DETAILS */}
 
-          <Card className="rounded-3xl border-none shadow-sm">
-            <CardHeader className="border-b bg-slate-50/60">
-              <CardTitle className="flex items-center gap-2">
-                <Plane className="h-5 w-5" />
-                Flight Details
-              </CardTitle>
+          <Card className="rounded-3xl border-none shadow-sm overflow-hidden">
+            <CardHeader
+              onClick={() => setFlightOpen((prev) => !prev)}
+              className="
+      border-b
+      bg-slate-50/60
+      cursor-pointer
+      select-none
+    "
+            >
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="flex items-center gap-2">
+                    <Plane className="h-5 w-5" />
+                    Flight Details
+                  </CardTitle>
 
-              <CardDescription>Operational flight information</CardDescription>
+                  <CardDescription>
+                    Operational flight information
+                  </CardDescription>
+                </div>
+
+                <ChevronDown
+                  className={`
+          h-5
+          w-5
+          transition-transform
+          duration-300
+          ${flightOpen ? "rotate-180" : ""}
+        `}
+                />
+              </div>
             </CardHeader>
 
-            <CardContent className="p-8">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-2">
-                  <Label>Flight Number</Label>
-
-                  <Input
-                    {...register("flightNumber")}
-                    placeholder="PJ-101"
-                    className="rounded-xl h-11"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label>Tail Number</Label>
-
-                  <Input
-                    {...register("tailNumber")}
-                    placeholder="VP-BDJ"
-                    className="rounded-xl h-11"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label>Departure</Label>
-
-                  <Input
-                    {...register("departure")}
-                    placeholder="DXB"
-                    className="rounded-xl h-11"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label>Arrival</Label>
-
-                  <Input
-                    {...register("arrival")}
-                    placeholder="LHR"
-                    className="rounded-xl h-11"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label>Date & Time</Label>
-
-                  <Input
-                    type="datetime-local"
-                    {...register("date")}
-                    className="rounded-xl h-11"
-                  />
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
+            {flightOpen && (
+              <CardContent className="p-8">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-2">
-                    <Label>Pax</Label>
+                    <Label>Flight Number</Label>
 
                     <Input
-                      type="number"
-                      {...register("paxCount")}
+                      {...register("flightNumber")}
+                      placeholder="PJ-101"
                       className="rounded-xl h-11"
                     />
                   </div>
 
                   <div className="space-y-2">
-                    <Label>Crew</Label>
+                    <Label>Tail Number</Label>
 
                     <Input
-                      type="number"
-                      {...register("crewCount")}
+                      {...register("tailNumber")}
+                      placeholder="VP-BDJ"
                       className="rounded-xl h-11"
                     />
                   </div>
+
+                  <div className="space-y-2">
+                    <Label>Departure</Label>
+
+                    <Input
+                      {...register("departure")}
+                      placeholder="DXB"
+                      className="rounded-xl h-11"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Arrival</Label>
+
+                    <Input
+                      {...register("arrival")}
+                      placeholder="LHR"
+                      className="rounded-xl h-11"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Date & Time</Label>
+
+                    <Input
+                      type="datetime-local"
+                      {...register("date")}
+                      className="rounded-xl h-11"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label>Pax</Label>
+
+                      <Input
+                        type="number"
+                        {...register("paxCount")}
+                        className="rounded-xl h-11"
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label>Crew</Label>
+
+                      <Input
+                        type="number"
+                        {...register("crewCount")}
+                        className="rounded-xl h-11"
+                      />
+                    </div>
+                  </div>
                 </div>
-              </div>
-            </CardContent>
+              </CardContent>
+            )}
           </Card>
 
           {/* VENDOR SELECT */}
-
           <Card className="rounded-3xl border-none shadow-sm">
             <CardHeader className="border-b bg-slate-50/60">
               <CardTitle className="flex items-center gap-2">
@@ -558,24 +690,43 @@ export default function FlightOrderForm({
                   </TableHeader>
 
                   <TableBody>
-                    {watchItems.map((field: any, index: number) => {
+                    {fields.map((field: any, index: number) => {
                       const itemTotal =
-                        (Number(field.price) || 0) *
-                        (Number(watch(`items.${index}.quantity`)) || 0);
+                        (Number(watchItems[index]?.price) || 0) *
+                        (Number(watchItems[index]?.quantity) || 0);
 
                       return (
-                        <TableRow key={field.id || index}>
+                        <TableRow key={field.id}>
                           <TableCell className="pl-8">
-                            <Input
-                              {...register(`items.${index}.name`)}
-                              className="rounded-xl"
-                            />
+                            <div
+                              className="
+    min-w-[180px]
+    rounded-xl
+    border
+    border-slate-200
+    bg-slate-50
+    px-4
+    py-2.5
+    text-sm
+    font-semibold
+    text-slate-800
+  "
+                            >
+                              {field.name}
+                            </div>
                           </TableCell>
 
                           <TableCell>
                             <Input
                               type="number"
-                              {...register(`items.${index}.quantity`)}
+                              min={1}
+                              value={watchItems[index]?.quantity || ""}
+                              onChange={(e) =>
+                                setValue(
+                                  `items.${index}.quantity`,
+                                  Number(e.target.value),
+                                )
+                              }
                               className="w-20 rounded-xl"
                             />
                           </TableCell>
@@ -626,7 +777,10 @@ export default function FlightOrderForm({
 
                           <TableCell>
                             <Input
-                              {...register(`items.${index}.notes`)}
+                              value={watchItems[index]?.notes || ""}
+                              onChange={(e) =>
+                                setValue(`items.${index}.notes`, e.target.value)
+                              }
                               className="rounded-xl"
                             />
                           </TableCell>
@@ -666,29 +820,47 @@ export default function FlightOrderForm({
 
               {/* Mobile Card Layout */}
               <div className="md:hidden divide-y">
-                {watchItems.map((field: any, index: number) => {
+                {fields.map((field: any, index: number) => {
                   const itemTotal =
-                    (Number(field.price) || 0) *
-                    (Number(watch(`items.${index}.quantity`)) || 0);
+                    (Number(watchItems[index]?.price) || 0) *
+                    (Number(watchItems[index]?.quantity) || 0);
 
                   return (
                     <div
-                      key={field.id || index}
+                      key={field.id}
                       className="p-5 bg-white hover:bg-slate-50 transition-colors"
                     >
                       <div className="flex justify-between items-start mb-4">
                         <div className="flex-1">
-                          <Input
-                            {...register(`items.${index}.name`)}
-                            className="rounded-xl mb-3"
-                            placeholder="Item name"
-                          />
+                          <div
+                            className="
+    min-w-[180px]
+    rounded-xl
+    border
+    border-slate-200
+    bg-slate-50
+    px-4
+    py-2.5
+    text-sm
+    font-semibold
+    text-slate-800
+  "
+                          >
+                            {field.name}
+                          </div>
                           <div className="flex items-center gap-3">
                             <div className="w-20">
                               <Input
                                 type="number"
-                                {...register(`items.${index}.quantity`)}
-                                className="rounded-xl text-center"
+                                min={1}
+                                value={watchItems[index]?.quantity || ""}
+                                onChange={(e) =>
+                                  setValue(
+                                    `items.${index}.quantity`,
+                                    Number(e.target.value),
+                                  )
+                                }
+                                className="w-20 rounded-xl"
                               />
                             </div>
                             <span className="text-slate-400 text-sm">×</span>
@@ -726,9 +898,11 @@ export default function FlightOrderForm({
                         </div>
 
                         <Input
-                          {...register(`items.${index}.notes`)}
+                          value={watchItems[index]?.notes || ""}
+                          onChange={(e) =>
+                            setValue(`items.${index}.notes`, e.target.value)
+                          }
                           className="rounded-xl"
-                          placeholder="Add notes..."
                         />
                       </div>
                     </div>
@@ -743,6 +917,203 @@ export default function FlightOrderForm({
               </div>
             </CardContent>
           </Card>
+          {watchItems.length > 0 && (
+            <Card className="rounded-3xl border-none shadow-sm overflow-hidden">
+              <CardHeader className="border-b bg-slate-50/60">
+                <CardTitle className="flex items-center gap-2">
+                  <Plane className="h-5 w-5" />
+                  Delivery Schedule
+                </CardTitle>
+
+                <CardDescription>
+                  Set delivery date & time for vendors
+                </CardDescription>
+              </CardHeader>
+
+              <CardContent className="p-6 md:p-8">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>Delivery Date</Label>
+
+                    <Input
+                      type="date"
+                      {...register("deliveryDate")}
+                      className="h-12 rounded-xl"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Delivery Time</Label>
+
+                    <Input
+                      type="time"
+                      {...register("deliveryTime")}
+                      className="h-12 rounded-xl"
+                    />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+          {/* MOBILE VENDOR MENU */}
+          <div className="xl:hidden">
+            <Card className="overflow-hidden rounded-[28px] border border-slate-200/60 bg-white shadow-sm">
+              <CardHeader className="border-b border-slate-100 bg-[#1868A5] text-white">
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <CardTitle className="text-xl font-bold tracking-tight">
+                      {selectedVendorIds.length
+                        ? "Vendor Menu"
+                        : "Global Catalog"}
+                    </CardTitle>
+
+                    <CardDescription className="mt-1 text-slate-300">
+                      Click any item to add into the order
+                    </CardDescription>
+                  </div>
+
+                  <div className="rounded-2xl bg-white/10 px-3 py-1 text-xs font-semibold text-white backdrop-blur">
+                    {displayedItems.length} Items
+                  </div>
+                </div>
+              </CardHeader>
+
+              <CardContent className="space-y-5 p-5">
+                {/* SEARCH */}
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+
+                  <Input
+                    placeholder={
+                      selectedVendorIds.length
+                        ? "Search vendor menu..."
+                        : "Search catalog..."
+                    }
+                    value={catalogSearch}
+                    onChange={(e) => setCatalogSearch(e.target.value)}
+                    className="h-11 rounded-2xl border-slate-200 pl-10 shadow-none"
+                  />
+                </div>
+                {/* TYPE FILTERS */}
+                <div className="flex flex-wrap gap-2">
+                  {["All", "food", "grocery"].map((type) => {
+                    const active = catalogFilter === type;
+
+                    return (
+                      <button
+                        key={type}
+                        type="button"
+                        onClick={() => setCatalogFilter(type)}
+                        className={`
+          rounded-full
+          px-4
+          py-2
+          text-xs
+          font-semibold
+          capitalize
+          transition-all
+          duration-200
+          ${
+            active
+              ? "bg-slate-900 text-white shadow-md"
+              : "border border-slate-200 bg-white text-slate-600 hover:bg-slate-100"
+          }
+        `}
+                      >
+                        {type}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {/* CATEGORY FILTERS */}
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setCategoryFilter("All")}
+                    className={`
+      rounded-full
+      px-3
+      py-1.5
+      text-[11px]
+      font-semibold
+      transition-all
+      ${
+        categoryFilter === "All"
+          ? "bg-[#1868A5] text-white"
+          : "border border-slate-200 bg-white text-slate-600 hover:bg-slate-100"
+      }
+    `}
+                  >
+                    All
+                  </button>
+
+                  {availableCategories.map((category) => {
+                    const active = categoryFilter === category;
+
+                    return (
+                      <button
+                        key={category}
+                        type="button"
+                        onClick={() => setCategoryFilter(category)}
+                        className={`
+          rounded-full
+          px-3
+          py-1.5
+          text-[11px]
+          font-semibold
+          transition-all
+          ${
+            active
+              ? "bg-[#1868A5] text-white"
+              : "border border-slate-200 bg-white text-slate-600 hover:bg-slate-100"
+          }
+        `}
+                      >
+                        {category}
+                      </button>
+                    );
+                  })}
+                </div>
+                {/* ITEMS */}
+                <div className="max-h-[500px] space-y-3 overflow-y-auto pr-1">
+                  {displayedItems.map((item: any) => (
+                    <button
+                      key={item.id}
+                      type="button"
+                      onClick={() => addItemToOrder(item)}
+                      className="
+              group
+              w-full
+              rounded-2xl
+              border
+              border-slate-100
+              bg-white
+              p-4
+              text-left
+              transition-all
+              duration-200
+              hover:border-slate-300
+              hover:shadow-md
+            "
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-sm font-bold text-slate-900">
+                            {item.name}
+                          </p>
+                        </div>
+
+                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-slate-100">
+                          <Plus className="h-4 w-4 text-slate-700" />
+                        </div>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
           <Card className="rounded-3xl border-none shadow-sm">
             <CardHeader className="border-b bg-slate-50/60">
               <CardTitle>Cost Summary</CardTitle>
@@ -812,7 +1183,7 @@ export default function FlightOrderForm({
 
         {/* RIGHT SIDEBAR */}
 
-        <div className="w-full xl:w-[380px] shrink-0">
+        <div className="hidden xl:block w-full xl:w-[380px] shrink-0">
           <Card className="sticky top-6 overflow-hidden rounded-[28px] border border-slate-200/60 bg-white shadow-sm">
             {/* HEADER */}
 
@@ -861,8 +1232,7 @@ export default function FlightOrderForm({
                 />
               </div>
 
-              {/* FILTER TABS */}
-
+              {/* TYPE FILTERS */}
               <div className="flex flex-wrap gap-2">
                 {["All", "food", "grocery"].map((type) => {
                   const active = catalogFilter === type;
@@ -873,22 +1243,72 @@ export default function FlightOrderForm({
                       type="button"
                       onClick={() => setCatalogFilter(type)}
                       className={`
-                  rounded-full
-                  px-4
-                  py-2
-                  text-xs
-                  font-semibold
-                  capitalize
-                  transition-all
-                  duration-200
-                  ${
-                    active
-                      ? "bg-slate-900 text-white shadow-md"
-                      : "border border-slate-200 bg-white text-slate-600 hover:bg-slate-100"
-                  }
-                `}
+          rounded-full
+          px-4
+          py-2
+          text-xs
+          font-semibold
+          capitalize
+          transition-all
+          duration-200
+          ${
+            active
+              ? "bg-slate-900 text-white shadow-md"
+              : "border border-slate-200 bg-white text-slate-600 hover:bg-slate-100"
+          }
+        `}
                     >
                       {type}
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* CATEGORY FILTERS */}
+              <div className="flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={() => setCategoryFilter("All")}
+                  className={`
+      rounded-full
+      px-3
+      py-1.5
+      text-[11px]
+      font-semibold
+      transition-all
+      ${
+        categoryFilter === "All"
+          ? "bg-[#1868A5] text-white"
+          : "border border-slate-200 bg-white text-slate-600 hover:bg-slate-100"
+      }
+    `}
+                >
+                  All
+                </button>
+
+                {availableCategories.map((category) => {
+                  const active = categoryFilter === category;
+
+                  return (
+                    <button
+                      key={category}
+                      type="button"
+                      onClick={() => setCategoryFilter(category)}
+                      className={`
+          rounded-full
+          px-3
+          py-1.5
+          text-[11px]
+          font-semibold
+          transition-all
+          ${
+            active
+              ? "bg-[#1868A5] text-white"
+              : "border border-slate-200 bg-white text-slate-600 hover:bg-slate-100"
+          }
+        `}
+                    >
+                      {category}
                     </button>
                   );
                 })}

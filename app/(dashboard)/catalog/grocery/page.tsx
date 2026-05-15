@@ -1,3 +1,4 @@
+// app\(dashboard)\catalog\grocery\page.tsx
 "use client";
 
 import React, { useEffect, useState, useRef, useCallback } from "react";
@@ -22,7 +23,7 @@ export default function GroceryCatalog() {
     category: "",
     subcategory: "",
     unit: "bottle",
-    defaultQty: 1,
+    defaultQty: undefined,
     price: 0,
     currency: "INR",
     isAvailable: true,
@@ -143,7 +144,7 @@ export default function GroceryCatalog() {
 
           unit: row.unit || "bottle",
 
-          defaultQty: Number(row.defaultQty) || 1,
+          defaultQty: row.defaultQty ? Number(row.defaultQty) : null,
 
           // ✅ PRICE
           price: Number(row.price) || 0,
@@ -366,7 +367,9 @@ export default function GroceryCatalog() {
 
                     {/* Qty - Hidden on very small screens */}
                     <span className="hidden sm:inline text-xs text-slate-500 min-w-[70px] text-center">
-                      {item.defaultQty} {item.unit}
+                      {item.defaultQty
+                        ? `${item.defaultQty} ${item.unit}`
+                        : "-"}
                     </span>
 
                     {/* Edit */}
@@ -492,11 +495,13 @@ export default function GroceryCatalog() {
                   <input
                     type="number"
                     min="1"
-                    value={newItem.defaultQty || 1}
+                    value={newItem.defaultQty ?? ""}
                     onChange={(e) =>
                       setNewItem({
                         ...newItem,
-                        defaultQty: parseInt(e.target.value) || 1,
+                        defaultQty: e.target.value
+                          ? parseInt(e.target.value)
+                          : null,
                       })
                     }
                     className="w-full border border-slate-300 rounded-md p-2 text-sm outline-none"

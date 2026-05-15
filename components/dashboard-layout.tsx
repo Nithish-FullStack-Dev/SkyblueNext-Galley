@@ -163,12 +163,12 @@ export default function DashboardLayout({
         permission: "view_users",
       },
 
-      {
-        href: "/settings",
-        icon: SettingsIcon,
-        label: "Settings",
-        permission: "view_settings",
-      },
+      // {
+      //   href: "/settings",
+      //   icon: SettingsIcon,
+      //   label: "Settings",
+      //   permission: "view_settings",
+      // },
     ],
   };
 

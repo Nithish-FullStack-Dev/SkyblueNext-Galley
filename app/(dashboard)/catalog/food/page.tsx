@@ -20,7 +20,7 @@ export default function FoodCatalog() {
     category: "",
     subcategory: "",
     unit: "portion",
-    defaultQty: 1,
+    defaultQty: undefined,
     isFavorite: false,
     dietaryTags: [],
     allergens: [],
@@ -40,7 +40,7 @@ export default function FoodCatalog() {
 
   const handleSaveItem = async () => {
     if (!newItem.name || !newItem.category) {
-      alert("Please fill in required fields (Name and Category)");
+      alert("Please fill in Name and Category");
       return;
     }
 
@@ -95,7 +95,7 @@ export default function FoodCatalog() {
 
           unit: row.unit || "portion",
 
-          defaultQty: Number(row.defaultQty) || 1,
+          defaultQty: row.defaultQty ? Number(row.defaultQty) : null,
 
           // ✅ PRICE
           price: Number(row.price) || 0,
@@ -222,7 +222,7 @@ export default function FoodCatalog() {
                 name: "",
                 category: "",
                 unit: "portion",
-                defaultQty: 1,
+                defaultQty: undefined,
                 dietaryTags: [],
                 allergens: [],
               });
@@ -296,7 +296,10 @@ export default function FoodCatalog() {
                       {item?.name}
                     </h3>
                     <p className="text-xs text-slate-500 mt-1">
-                      {item?.category} • {item?.defaultQty} {item?.unit}
+                      {item?.category}
+                      {item?.defaultQty
+                        ? ` • ${item.defaultQty} ${item.unit}`
+                        : ""}
                     </p>
                   </div>
                 </div>
@@ -457,11 +460,13 @@ export default function FoodCatalog() {
                   <input
                     type="number"
                     min="1"
-                    value={newItem.defaultQty || 1}
+                    value={newItem.defaultQty ?? ""}
                     onChange={(e) =>
                       setNewItem({
                         ...newItem,
-                        defaultQty: parseInt(e.target.value) || 1,
+                        defaultQty: e.target.value
+                          ? parseInt(e.target.value)
+                          : null,
                       })
                     }
                     className="w-full border border-slate-300 rounded-md p-2 text-sm outline-none"

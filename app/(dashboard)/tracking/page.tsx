@@ -15,7 +15,15 @@ export default async function TrackingPage() {
   const orders = await prisma.flightOrder.findMany({
     where: {
       status: {
-        not: "Draft",
+        in: [
+          "Approved",
+          "SentToVendor",
+          "Confirmed",
+          "Delivered",
+          "Completed",
+          "Rejected",
+          "Cancelled",
+        ],
       },
     },
 
@@ -44,7 +52,14 @@ export default async function TrackingPage() {
 
       items: {
         include: {
-          vendor: true,
+          vendor: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+              contactPerson: true,
+            },
+          },
         },
       },
     },

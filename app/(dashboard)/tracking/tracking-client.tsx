@@ -1,3 +1,4 @@
+// app\(dashboard)\tracking\tracking-client.tsx
 "use client";
 
 import { useMemo, useState } from "react";
@@ -40,7 +41,12 @@ interface OrderItem {
   category?: string | null;
   unit?: string | null;
   vendorName?: string | null;
-  vendor?: { name: string } | null;
+  vendor?: {
+    id: string;
+    name: string;
+    email: string;
+    contactPerson?: string;
+  } | null;
 }
 
 interface Order {
@@ -56,7 +62,12 @@ interface Order {
   billNotes?: string | null;
   createdAt: string;
   updatedAt: string;
-  vendor?: { id: string; name: string; email: string } | null;
+  vendor?: {
+    id: string;
+    name: string;
+    email: string;
+    contactPerson?: string;
+  } | null;
   creator?: { name: string };
   approver?: { name: string; role: string } | null;
   rejector?: { name: string; role: string } | null;
@@ -188,7 +199,83 @@ export default function TrackingClient({ orders }: Props) {
   const [restoreOrder, setRestoreOrder] = useState<Order | null>(null);
   const [restoreItems, setRestoreItems] = useState<RestoreItem[]>([]);
   const [restoreLoading, setRestoreLoading] = useState(false);
+  const [vendorDialog, setVendorDialog] = useState<Order | null>(null);
 
+  const [sendingVendorMail, setSendingVendorMail] = useState(false);
+
+  const getVendorMessage = (
+    vendorName: string,
+    contactPerson: string,
+    flightNumber?: string,
+    departure?: string,
+    arrival?: string,
+    deliveryDate?: string,
+    deliveryTime?: string,
+  ) => {
+    return `
+  <div style="
+    font-size:15px;
+    line-height:1.6;
+    color:#1e293b;
+  ">
+
+    <div style="margin-bottom:12px;">
+      Dear ${contactPerson} Team,
+    </div>
+
+    <div style="margin-bottom:12px;">
+      Greetings from SkyBlue Galley Operations.
+    </div>
+
+    <div style="margin-bottom:12px;">
+      Please find attached the catering order details for
+      Flight <strong>${flightNumber}</strong>
+      operating from <strong>${departure}</strong>
+      to <strong>${arrival}</strong>.
+    </div>
+
+    <div style="margin-bottom:12px;">
+      Kindly prepare and arrange the requested catering items
+      as per the attached PDF document.
+    </div>
+
+    <div style="margin-bottom:12px;">
+      <strong>Delivery Required Before:</strong><br/>
+      ${
+        deliveryDate
+          ? format(
+              new Date(`${deliveryDate} ${deliveryTime}`),
+              "dd-MMM-yyyy hh:mma",
+            )
+          : "-"
+      }
+    </div>
+
+    <div style="margin-bottom:12px;">
+      Please ensure timely delivery and confirm receipt of this order.
+    </div>
+
+    <div style="margin-bottom:12px;">
+      If you have any questions or require clarification,
+      please feel free to contact us.
+    </div>
+
+    <div style="margin-bottom:18px;">
+      Thank you for your support and cooperation.
+    </div>
+
+    <div>
+      Best Regards,<br/>
+      <strong>SkyBlue Galley Operations Team</strong>
+    </div>
+
+  </div>
+  `;
+  };
+
+  const [vendorMessages, setVendorMessages] = useState<Record<string, string>>(
+    {},
+  );
   const filteredOrders = useMemo(() => {
     return orders
       .filter((order) => {
@@ -428,7 +515,7 @@ export default function TrackingClient({ orders }: Props) {
                 const isTerminal =
                   order.status === "Rejected" || order.status === "Cancelled";
                 const isSentToVendor = order.status === "SentToVendor";
-                const isCompleted = order.status === "Completed";
+                const isDelivered = order.status === "Delivered";
 
                 return (
                   <Card
@@ -589,17 +676,40 @@ export default function TrackingClient({ orders }: Props) {
                                 {isSentToVendor && (
                                   <div className="pt-3 border-t border-slate-100">
                                     <Button
+                                      onClick={() => {
+                                        setVendorDialog(order);
+
+                                        const messages: Record<string, string> =
+                                          {};
+
+                                        order.items?.forEach((item: any) => {
+                                          if (item.vendor?.id) {
+                                            messages[item.vendor.id] =
+                                              getVendorMessage(
+                                                item.vendor.name,
+                                                item.vendor.contactPerson ||
+                                                  "Vendor",
+                                                order.flightNumber,
+                                                order.departure,
+                                                order.arrival,
+                                                (order as any).deliveryDate,
+                                                (order as any).deliveryTime,
+                                              );
+                                          }
+                                        });
+
+                                        setVendorMessages(messages);
+                                      }}
                                       variant="outline"
-                                      disabled
-                                      className="h-9 px-4 rounded-xl border border-violet-200 text-violet-600 text-xs font-semibold bg-violet-50 opacity-60 cursor-not-allowed"
+                                      className="h-9 px-4 rounded-xl border border-violet-200 text-violet-600 text-xs font-semibold hover:bg-violet-50 transition-all"
                                     >
                                       <Send className="w-3.5 h-3.5 mr-2" />
-                                      Send to Vendor (coming soon)
+                                      Send to Vendor
                                     </Button>
                                   </div>
                                 )}
 
-                                {isCompleted && (
+                                {isDelivered && (
                                   <div className="pt-3 border-t border-slate-100">
                                     <Button
                                       onClick={() => openRestoreModal(order)}
@@ -1252,6 +1362,360 @@ export default function TrackingClient({ orders }: Props) {
                 )}
                 Save Restored Items
               </Button>
+            </div>
+          </div>
+        </div>
+      )}
+      {vendorDialog && (
+        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-md flex items-center justify-center p-3 sm:p-5">
+          <div className="bg-white w-full max-w-3xl rounded-[32px] shadow-2xl overflow-hidden border border-slate-200 max-h-[95vh] overflow-y-auto">
+            <div className="border-b border-slate-100 px-5 sm:px-8 py-5 sm:py-6 flex items-start justify-between">
+              <div className="min-w-0">
+                <div className="flex items-center gap-3">
+                  <div className="w-11 h-11 rounded-2xl bg-violet-100 flex items-center justify-center shrink-0">
+                    <Send className="w-5 h-5 text-violet-700" />
+                  </div>
+
+                  <div className="min-w-0">
+                    <h2 className="text-xl sm:text-2xl font-bold text-slate-900 truncate">
+                      Send Vendor Order
+                    </h2>
+
+                    <p className="text-sm text-slate-500 mt-0.5 truncate">
+                      Flight {vendorDialog.flightNumber} •{" "}
+                      {vendorDialog.departure} → {vendorDialog.arrival}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <button
+                onClick={() => setVendorDialog(null)}
+                className="w-10 h-10 rounded-2xl hover:bg-slate-100 flex items-center justify-center transition-colors shrink-0"
+              >
+                <X className="w-4 h-4 text-slate-500" />
+              </button>
+            </div>
+
+            <div className="p-5 sm:p-8 space-y-6">
+              <div className="grid grid-cols-1 gap-4">
+                <div className="rounded-2xl border border-slate-200 overflow-hidden">
+                  <div className="px-4 py-3 bg-slate-50 border-b border-slate-200">
+                    <p className="text-[11px] uppercase tracking-[0.18em] font-bold text-slate-500">
+                      From
+                    </p>
+                  </div>
+
+                  <div className="px-4 py-4">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-full bg-[#1868A5]/10 flex items-center justify-center">
+                        <Mail className="w-4 h-4 text-[#1868A5]" />
+                      </div>
+
+                      <div className="min-w-0">
+                        <p className="font-semibold text-slate-900">
+                          SkyBlue Galley Operations
+                        </p>
+
+                        <p className="text-sm text-slate-500 truncate">
+                          {process.env.NEXT_PUBLIC_FROM_EMAIL}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="rounded-2xl border border-slate-200 overflow-hidden">
+                  <div className="px-4 py-3 bg-slate-50 border-b border-slate-200">
+                    <p className="text-[11px] uppercase tracking-[0.18em] font-bold text-slate-500">
+                      To
+                    </p>
+                  </div>
+
+                  <div className="p-4">
+                    <div className="flex flex-wrap gap-2">
+                      {Array.from(
+                        new Map(
+                          vendorDialog.items
+                            ?.filter((item) => item.vendor?.email)
+                            .map((item) => [
+                              item.vendor?.email,
+                              {
+                                name: item.vendor?.name || item.vendorName,
+
+                                email: item.vendor?.email,
+                              },
+                            ]),
+                        ).values(),
+                      ).map((vendor: any) => (
+                        <div
+                          key={vendor.email}
+                          className="flex items-center gap-2 rounded-2xl border border-violet-200 bg-violet-50 px-3 py-2"
+                        >
+                          <div className="w-8 h-8 rounded-full bg-violet-200 text-violet-700 flex items-center justify-center text-xs font-bold">
+                            {vendor.name?.charAt(0)}
+                          </div>
+
+                          <div className="min-w-0">
+                            <p className="text-sm font-semibold text-violet-900 truncate">
+                              {vendor.name}
+                            </p>
+
+                            <p className="text-xs text-violet-600 truncate">
+                              {vendor.email}
+                            </p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="rounded-2xl border border-slate-200 overflow-hidden">
+                  <div className="px-4 py-3 bg-slate-50 border-b border-slate-200">
+                    <p className="text-[11px] uppercase tracking-[0.18em] font-bold text-slate-500">
+                      Subject
+                    </p>
+                  </div>
+
+                  <div className="p-4">
+                    <Input
+                      value={`Catering Order - Flight ${vendorDialog.flightNumber}`}
+                      readOnly
+                      className="h-12 rounded-xl border-slate-200 bg-slate-50 text-sm font-medium"
+                    />
+                  </div>
+                </div>
+
+                <div className="rounded-2xl border border-slate-200 overflow-hidden">
+                  <div className="px-4 py-3 bg-slate-50 border-b border-slate-200">
+                    <p className="text-[11px] uppercase tracking-[0.18em] font-bold text-slate-500">
+                      Message
+                    </p>
+                  </div>
+
+                  <div className="p-4">
+                    <div className="space-y-5">
+                      {Array.from(
+                        new Map(
+                          vendorDialog.items
+                            ?.filter((item) => item.vendor?.email)
+                            .map((item) => [
+                              item.vendor?.id,
+                              {
+                                id: item.vendor?.id,
+                                name: item.vendor?.name || item.vendorName,
+                                email: item.vendor?.email,
+                              },
+                            ]),
+                        ).values(),
+                      ).map((vendor: any) => (
+                        <div
+                          key={vendor.id}
+                          className="rounded-2xl border border-slate-200 overflow-hidden"
+                        >
+                          <div className="px-4 py-3 bg-violet-50 border-b border-violet-100">
+                            <p className="text-sm font-semibold text-violet-900">
+                              {vendor.name}
+                            </p>
+
+                            <p className="text-xs text-violet-600">
+                              {vendor.email}
+                            </p>
+                          </div>
+                          <div className="p-4">
+                            <div
+                              className="
+      min-h-[220px]
+      rounded-2xl
+      border
+      border-slate-200
+      bg-white
+      p-4
+      text-sm
+      leading-7
+      text-slate-700
+      overflow-y-auto
+    "
+                              dangerouslySetInnerHTML={{
+                                __html: vendorMessages[vendor.id] || "",
+                              }}
+                            />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 sm:p-5">
+                  <div className="flex items-start gap-3">
+                    <div className="w-11 h-11 rounded-2xl bg-emerald-100 flex items-center justify-center shrink-0">
+                      <FileText className="w-5 h-5 text-emerald-700" />
+                    </div>
+
+                    <div className="min-w-0 flex-1">
+                      <h3 className="text-sm font-bold text-emerald-900">
+                        PDF Attachments
+                      </h3>
+
+                      <p className="text-sm text-emerald-700 mt-1 leading-relaxed">
+                        Each vendor will receive only their own catering PDF
+                        with no access to other vendor items.
+                      </p>
+
+                      <div className="mt-4 space-y-2">
+                        {Array.from(
+                          new Map(
+                            vendorDialog.items
+                              ?.filter((item) => item.vendor?.email)
+                              .map((item) => [
+                                item.vendor?.email,
+                                {
+                                  name: item.vendor?.name || item.vendorName,
+                                },
+                              ]),
+                          ).values(),
+                        ).map((vendor: any) => (
+                          <div
+                            key={vendor.name}
+                            className="flex items-center justify-between rounded-xl border border-emerald-200 bg-white px-3 py-2"
+                          >
+                            <div className="flex items-center gap-2 min-w-0">
+                              <FileText className="w-4 h-4 text-emerald-700 shrink-0" />
+
+                              <p className="text-sm font-medium text-slate-700 truncate">
+                                {vendor.name}-order.pdf
+                              </p>
+                            </div>
+
+                            <span className="text-[11px] font-semibold text-emerald-700 bg-emerald-100 px-2 py-1 rounded-lg">
+                              Attached
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex flex-col-reverse sm:flex-row gap-3 pt-2">
+                <Button
+                  variant="outline"
+                  onClick={() => setVendorDialog(null)}
+                  className="flex-1 h-12 rounded-2xl border-slate-200"
+                >
+                  Cancel
+                </Button>
+
+                <Button
+                  onClick={async () => {
+                    try {
+                      setSendingVendorMail(true);
+
+                      const vendorGroups = vendorDialog.items.reduce(
+                        (acc: any, item: any) => {
+                          const vendorId = item.vendor?.id;
+
+                          if (!vendorId) return acc;
+
+                          if (!acc[vendorId]) {
+                            acc[vendorId] = {
+                              vendorId,
+
+                              vendorName: item.vendor?.name,
+
+                              vendorEmail: item.vendor?.email,
+
+                              items: [],
+                            };
+                          }
+
+                          acc[vendorId].items.push(item);
+
+                          return acc;
+                        },
+                        {},
+                      );
+
+                      const vendorList = Object.values(vendorGroups);
+
+                      await Promise.all(
+                        vendorList.map(async (vendor: any) => {
+                          const pdfResponse = await fetch(
+                            `/api/vendors/${vendor.vendorId}/pdf?flightId=${vendorDialog.id}`,
+                          );
+
+                          const pdfBlob = await pdfResponse.blob();
+
+                          const arrayBuffer = await pdfBlob.arrayBuffer();
+
+                          const base64 = btoa(
+                            new Uint8Array(arrayBuffer).reduce(
+                              (data, byte) => data + String.fromCharCode(byte),
+                              "",
+                            ),
+                          );
+
+                          await axios.post("/api/vendors/send-order", {
+                            vendorId: vendor.vendorId,
+
+                            vendorName: vendor.vendorName,
+
+                            email: vendor.vendorEmail,
+
+                            flightId: vendorDialog.id,
+
+                            flightNumber: vendorDialog.flightNumber,
+
+                            departure: vendorDialog.departure,
+
+                            arrival: vendorDialog.arrival,
+
+                            flightDate: vendorDialog.date,
+
+                            message: vendorMessages[vendor.vendorId] || "",
+
+                            filename: `${vendor.vendorName}-order.pdf`,
+
+                            pdfBuffer: base64,
+
+                            items: vendor.items,
+                          });
+                        }),
+                      );
+
+                      toast({
+                        title: "Vendor mails sent successfully",
+                      });
+
+                      setVendorDialog(null);
+
+                      router.refresh();
+                    } catch (error) {
+                      console.log(error);
+
+                      toast({
+                        title: "Failed to send vendor mail",
+
+                        variant: "destructive",
+                      });
+                    } finally {
+                      setSendingVendorMail(false);
+                    }
+                  }}
+                  disabled={sendingVendorMail}
+                  className="flex-1 h-12 rounded-2xl bg-violet-600 hover:bg-violet-700 text-white"
+                >
+                  {sendingVendorMail ? (
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  ) : (
+                    <Send className="w-4 h-4 mr-2" />
+                  )}
+                  Send Vendor Mail
+                </Button>
+              </div>
             </div>
           </div>
         </div>

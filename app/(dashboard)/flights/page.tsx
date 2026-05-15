@@ -34,7 +34,7 @@ export default function FlightsPage() {
     tailNumber: "",
     paxCount: 1,
     crewCount: 1,
-    timezone: "GST (UTC+4)",
+    timezone: "IST (UTC+5:30)",
     pickupLocation: "",
     dietaryNotes: "",
     serviceStyleNotes: "",
@@ -50,7 +50,7 @@ export default function FlightsPage() {
     tailNumber: "",
     paxCount: 1,
     crewCount: 1,
-    timezone: "GST (UTC+4)",
+    timezone: "IST (UTC+5:30)",
     pickupLocation: "",
     dietaryNotes: "",
     serviceStyleNotes: "",
@@ -474,13 +474,10 @@ export default function FlightsPage() {
                     </SelectTrigger>
 
                     <SelectContent className="rounded-xl">
+                      <SelectItem value="IST (UTC+5:30)">IST (UTC+5:30)</SelectItem>
                       <SelectItem value="GST (UTC+4)">GST (UTC+4)</SelectItem>
 
                       <SelectItem value="UTC">UTC</SelectItem>
-
-                      <SelectItem value="IST (UTC+5:30)">
-                        IST (UTC+5:30)
-                      </SelectItem>
 
                       <SelectItem value="CET (UTC+1)">CET (UTC+1)</SelectItem>
 
