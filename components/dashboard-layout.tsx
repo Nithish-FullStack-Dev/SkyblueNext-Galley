@@ -165,7 +165,7 @@ export default function DashboardLayout({
       },
 
       {
-        href: "/flight-reports",
+        href: "/reports",
         icon: BarChart,
         label: "Reports",
         permission: "view_reports",
