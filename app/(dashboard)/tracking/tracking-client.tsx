@@ -73,7 +73,21 @@ interface Order {
   rejector?: { name: string; role: string } | null;
   rejectionReason?: string | null;
   rejectedAt?: string | null;
+  cancelReason?: string | null;
+  cancelledAt?: string | null;
   items: OrderItem[];
+  restoredItems?: Array<{
+    id: string;
+    itemId: string;
+    returnedQty: number;
+    restoredBy: string;
+    restoredAt: string;
+    item?: {
+      name: string;
+      unit?: string;
+      category?: string;
+    };
+  }> | null;
 }
 
 interface Props {
@@ -200,9 +214,10 @@ export default function TrackingClient({ orders }: Props) {
   const [restoreItems, setRestoreItems] = useState<RestoreItem[]>([]);
   const [restoreLoading, setRestoreLoading] = useState(false);
   const [vendorDialog, setVendorDialog] = useState<Order | null>(null);
-
   const [sendingVendorMail, setSendingVendorMail] = useState(false);
+  const [cancellingOrder, setCancellingOrder] = useState<Order | null>(null);
 
+  const [cancelReason, setCancelReason] = useState("");
   const getVendorMessage = (
     vendorName: string,
     contactPerson: string,
@@ -349,7 +364,27 @@ export default function TrackingClient({ orders }: Props) {
       setLoadingId(null);
     }
   };
+  const handleCancel = async () => {
+    try {
+      if (!cancellingOrder) return;
 
+      setLoadingId(cancellingOrder.id);
+
+      await axios.patch(`/api/flights/${cancellingOrder.id}/status`, {
+        status: "Cancelled",
+        cancelReason,
+      });
+
+      setCancellingOrder(null);
+      setCancelReason("");
+
+      router.refresh();
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setLoadingId(null);
+    }
+  };
   const handleUploadBill = async () => {
     try {
       if (!selectedOrder) return;
@@ -381,15 +416,33 @@ export default function TrackingClient({ orders }: Props) {
 
   const openRestoreModal = (order: Order) => {
     setRestoreOrder(order);
+
     setRestoreItems(
-      order.items.map((item) => ({
-        id: item.id,
-        name: item.name,
-        quantity: item.quantity,
-        returnedQty: 0,
-        unit: item.unit,
-        category: item.category,
-      })),
+      order.items
+        .filter(
+          (item: any) =>
+            item.itemId && item.itemId !== "custom" && !item.vendorId,
+        )
+        .map((item: any) => {
+          const alreadyRestored = (order.restoredItems || [])
+            .filter((restore: any) => restore.itemId === item.id)
+            .reduce(
+              (sum: number, restore: any) => sum + restore.returnedQty,
+              0,
+            );
+
+          const remainingQty = item.quantity - alreadyRestored;
+
+          return {
+            id: item.id,
+            name: item.name,
+            quantity: remainingQty,
+            returnedQty: 0,
+            unit: item.unit,
+            category: item.category,
+          };
+        })
+        .filter((item) => item.quantity > 0),
     );
   };
 
@@ -436,7 +489,7 @@ export default function TrackingClient({ orders }: Props) {
   return (
     <>
       <div className="min-h-screen bg-[#F7F8FA]">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-8">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
           <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
             <div>
               <p className="text-xs font-semibold tracking-[0.18em] uppercase text-[#1868A5] mb-1">
@@ -613,25 +666,69 @@ export default function TrackingClient({ orders }: Props) {
                                   Workflow Progress
                                 </p>
 
-                                <div className="flex items-start gap-0">
+                                <div className="flex items-start overflow-x-auto scrollbar-hide pb-2">
                                   {statusFlow.map((status, idx) => {
                                     const isStepCompleted = currentStep > idx;
                                     const isStepActive = currentStep === idx;
                                     return (
                                       <div
                                         key={status}
-                                        className="flex items-center flex-1 last:flex-none"
+                                        className="flex items-center min-w-[88px] sm:flex-1 last:flex-none"
                                       >
                                         <button
-                                          onClick={() =>
-                                            confirmStatusChange(order, status)
-                                          }
+                                          onClick={() => {
+                                            const targetIndex =
+                                              statusFlow.indexOf(status);
+                                            const currentIndex =
+                                              statusFlow.indexOf(order.status);
+
+                                            // BLOCK BACKWARD STATUS
+                                            if (targetIndex < currentIndex) {
+                                              toast({
+                                                title: "Invalid Status Update",
+                                                description:
+                                                  "You cannot move workflow backwards once progressed.",
+                                                variant: "destructive",
+                                              });
+
+                                              return;
+                                            }
+
+                                            // BLOCK SAME STATUS
+                                            if (targetIndex === currentIndex) {
+                                              toast({
+                                                title: "Already Active",
+                                                description:
+                                                  "This workflow step is already active.",
+                                              });
+
+                                              return;
+                                            }
+
+                                            // BLOCK COMPLETED
+                                            if (
+                                              order.status === "Completed" ||
+                                              order.status === "Cancelled" ||
+                                              order.status === "Rejected"
+                                            ) {
+                                              toast({
+                                                title: "Workflow Locked",
+                                                description:
+                                                  "This order can no longer be modified.",
+                                                variant: "destructive",
+                                              });
+
+                                              return;
+                                            }
+
+                                            confirmStatusChange(order, status);
+                                          }}
                                           disabled={loadingId === order.id}
                                           className="relative flex flex-col items-center gap-1.5 group transition-all focus:outline-none"
                                         >
                                           <div
                                             className={cn(
-                                              "w-8 h-8 rounded-full border-2 flex items-center justify-center transition-all",
+                                              "w-7 h-7 sm:w-8 sm:h-8 rounded-full border-2 flex items-center justify-center transition-all",
                                               isStepCompleted
                                                 ? "bg-[#1868A5] border-[#1868A5]"
                                                 : isStepActive
@@ -649,7 +746,7 @@ export default function TrackingClient({ orders }: Props) {
                                           </div>
                                           <span
                                             className={cn(
-                                              "text-[10px] font-semibold whitespace-normal hidden sm:block text-center leading-tight w-[60px]",
+                                              "text-[9px] sm:text-[10px] font-semibold whitespace-normal hidden sm:block text-center leading-tight w-[60px]",
                                               isStepCompleted || isStepActive
                                                 ? "text-[#1868A5]"
                                                 : "text-slate-400",
@@ -731,9 +828,7 @@ export default function TrackingClient({ orders }: Props) {
                                     Reject
                                   </button>
                                   <button
-                                    onClick={() =>
-                                      confirmStatusChange(order, "Cancelled")
-                                    }
+                                    onClick={() => setCancellingOrder(order)}
                                     disabled={loadingId === order.id}
                                     className="h-9 px-4 rounded-xl border border-slate-200 text-slate-500 text-xs font-semibold hover:bg-slate-50 transition-all"
                                   >
@@ -801,22 +896,49 @@ export default function TrackingClient({ orders }: Props) {
 
                               <div>
                                 {order.status === "Rejected" ? (
-                                  <div className="space-y-2">
+                                  <div className="space-y-3">
                                     <div>
                                       <p className="text-[10px] uppercase tracking-widest font-bold text-red-400 mb-1">
                                         Rejected By
                                       </p>
+
                                       <p className="text-sm font-bold text-slate-900">
                                         {order.rejector?.name || "—"}
                                       </p>
                                     </div>
+
                                     {order.rejectionReason && (
-                                      <div>
-                                        <p className="text-[10px] uppercase tracking-widest font-bold text-red-400 mb-1">
-                                          Reason
+                                      <div className="rounded-2xl border border-red-200 bg-red-50 p-4">
+                                        <p className="text-[10px] uppercase tracking-widest font-bold text-red-500 mb-2">
+                                          Rejection Message
                                         </p>
-                                        <p className="text-xs text-slate-600 leading-relaxed">
+
+                                        <p className="text-sm text-red-700 leading-relaxed">
                                           {order.rejectionReason}
+                                        </p>
+                                      </div>
+                                    )}
+                                  </div>
+                                ) : order.status === "Cancelled" ? (
+                                  <div className="space-y-3">
+                                    <div>
+                                      <p className="text-[10px] uppercase tracking-widest font-bold text-slate-400 mb-1">
+                                        Cancelled
+                                      </p>
+
+                                      <p className="text-sm font-bold text-slate-900">
+                                        Order Cancelled
+                                      </p>
+                                    </div>
+
+                                    {order.cancelReason && (
+                                      <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                                        <p className="text-[10px] uppercase tracking-widest font-bold text-slate-500 mb-2">
+                                          Cancel Message
+                                        </p>
+
+                                        <p className="text-sm text-slate-700 leading-relaxed">
+                                          {order.cancelReason}
                                         </p>
                                       </div>
                                     )}
@@ -1242,6 +1364,78 @@ export default function TrackingClient({ orders }: Props) {
         </div>
       )}
 
+      {cancellingOrder && (
+        <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden">
+            <div className="px-7 pt-7 pb-5 flex items-start justify-between">
+              <div>
+                <h2 className="text-xl font-bold text-slate-900">
+                  Cancel Order
+                </h2>
+
+                <p className="text-sm text-slate-400 mt-0.5 flex items-center gap-1.5">
+                  <Plane className="w-3.5 h-3.5" />
+                  Flight {cancellingOrder.flightNumber}
+                </p>
+              </div>
+
+              <button
+                onClick={() => {
+                  setCancellingOrder(null);
+                  setCancelReason("");
+                }}
+                className="w-9 h-9 rounded-xl hover:bg-slate-100 flex items-center justify-center transition-colors mt-0.5"
+              >
+                <X className="w-4 h-4 text-slate-400" />
+              </button>
+            </div>
+
+            <div className="px-7 pb-7 space-y-5">
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold uppercase tracking-wider text-slate-500">
+                  Cancel Message
+                </label>
+
+                <Textarea
+                  value={cancelReason}
+                  onChange={(e) => setCancelReason(e.target.value)}
+                  placeholder="Reason for cancellation..."
+                  className="min-h-[130px] rounded-xl border-slate-200 resize-none text-sm"
+                />
+              </div>
+
+              <div className="flex gap-3 pt-1">
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setCancellingOrder(null);
+                    setCancelReason("");
+                  }}
+                  className="flex-1 h-11 rounded-xl border-slate-200"
+                >
+                  Back
+                </Button>
+
+                <Button
+                  onClick={handleCancel}
+                  disabled={
+                    !cancelReason.trim() || loadingId === cancellingOrder.id
+                  }
+                  className="flex-1 h-11 rounded-xl bg-slate-900 hover:bg-slate-800 text-white"
+                >
+                  {loadingId === cancellingOrder.id ? (
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  ) : (
+                    <X className="w-4 h-4 mr-2" />
+                  )}
+                  Confirm Cancel
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {restoreOrder && (
         <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="bg-white rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden flex flex-col max-h-[90vh]">
@@ -1452,7 +1646,7 @@ export default function TrackingClient({ orders }: Props) {
                           key={vendor.email}
                           className="flex items-center gap-2 rounded-2xl border border-violet-200 bg-violet-50 px-3 py-2"
                         >
-                          <div className="w-8 h-8 rounded-full bg-violet-200 text-violet-700 flex items-center justify-center text-xs font-bold">
+                          <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-violet-200 text-violet-700 flex items-center justify-center text-xs font-bold">
                             {vendor.name?.charAt(0)}
                           </div>
 

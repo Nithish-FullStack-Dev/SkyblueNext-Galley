@@ -95,6 +95,9 @@ model FlightOrder {
   rejectedAt DateTime?
   rejector   User?   @relation("RejectedBy", fields: [rejectedBy], references: [id])
 
+  cancelReason String?
+  cancelledAt  DateTime?
+
   items OrderItem[]
 
   restoredItems RestoredItem[]

@@ -25,11 +25,17 @@ export async function PATCH(
             billAmount,
             billNotes,
             billUrl,
+            rejectionReason,
+            cancelReason,
         } = body;
 
         const flight = await prisma.flightOrder.findUnique({
             where: {
                 id: params.id,
+            },
+
+            include: {
+                items: true,
             },
         });
 
@@ -39,7 +45,38 @@ export async function PATCH(
                 { status: 404 }
             );
         }
+        // AUTO RESTORE STOCK ON REJECT/CANCEL
+        if (
+            ["Rejected", "Cancelled"].includes(status) &&
+            !["Rejected", "Cancelled"].includes(
+                flight.status,
+            )
+        ) {
 
+
+
+            for (const item of flight.items) {
+
+                // ONLY GLOBAL ITEMS
+                if (
+                    item.itemId &&
+                    item.itemId !== "custom"
+                ) {
+
+                    await prisma.catalogItem.update({
+                        where: {
+                            id: item.itemId,
+                        },
+
+                        data: {
+                            stock: {
+                                increment: item.quantity,
+                            },
+                        },
+                    });
+                }
+            }
+        }
         const updatedFlight =
             await prisma.flightOrder.update({
                 where: {
@@ -48,6 +85,26 @@ export async function PATCH(
 
                 data: {
                     status,
+
+                    rejectionReason:
+                        status === "Rejected"
+                            ? rejectionReason
+                            : flight.rejectionReason,
+
+                    rejectedAt:
+                        status === "Rejected"
+                            ? new Date()
+                            : flight.rejectedAt,
+
+                    cancelReason:
+                        status === "Cancelled"
+                            ? cancelReason
+                            : flight.cancelReason,
+
+                    cancelledAt:
+                        status === "Cancelled"
+                            ? new Date()
+                            : flight.cancelledAt,
 
                     billAmount:
                         billAmount !== undefined

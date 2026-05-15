@@ -30,6 +30,8 @@ export default async function TrackingPage() {
     include: {
       vendor: true,
 
+      restoredItems: true,
+
       creator: {
         select: {
           name: true,
