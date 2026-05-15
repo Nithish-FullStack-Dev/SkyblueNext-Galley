@@ -22,12 +22,23 @@ async function fetchFlights() {
   return res.data;
 }
 
+async function fetchRestoredItems() {
+  const res = await axios.get("/api/restored-items");
+
+  return res.data;
+}
+
 export default function GroceryOnboard() {
   const [openFlightId, setOpenFlightId] = useState<string | null>(null);
 
   const { data: flights = [], isLoading } = useQuery({
     queryKey: ["grocery-onboard-flights"],
     queryFn: fetchFlights,
+  });
+
+  const { data: restoredItems = [], isLoading: restoredLoading } = useQuery({
+    queryKey: ["restored-items"],
+    queryFn: fetchRestoredItems,
   });
 
   const flightsWithOrders = useMemo(() => {
@@ -557,193 +568,239 @@ export default function GroceryOnboard() {
                       </p>
                     </div>
 
-                    {flight.items?.some(
-                      (item: any) => Number(item.restoredQuantity || 0) > 0,
-                    ) ? (
-                      <>
-                        <div
-                          className="
-                overflow-x-auto
-                rounded-3xl
-                border
-                border-slate-200
-                bg-white
-              "
-                        >
-                          <table className="min-w-full">
-                            <thead className="bg-slate-100">
-                              <tr>
-                                <th className="px-4 py-4 text-left text-xs font-bold uppercase tracking-wide text-slate-600 whitespace-nowrap">
-                                  Item
-                                </th>
+                    {(() => {
+                      const flightRestoredItems = restoredItems.filter(
+                        (restored: any) => restored.flightOrderId === flight.id,
+                      );
 
-                                <th className="px-4 py-4 text-left text-xs font-bold uppercase tracking-wide text-slate-600 whitespace-nowrap">
-                                  Category
-                                </th>
+                      const restoredTotal = flightRestoredItems.reduce(
+                        (sum: number, restored: any) => {
+                          const originalItem = flight.items.find(
+                            (item: any) => item.id === restored.itemId,
+                          );
 
-                                <th className="px-4 py-4 text-left text-xs font-bold uppercase tracking-wide text-slate-600 whitespace-nowrap">
-                                  Vendor
-                                </th>
+                          return (
+                            sum +
+                            Number(originalItem?.price || 0) *
+                              Number(restored.returnedQty || 0)
+                          );
+                        },
+                        0,
+                      );
 
-                                <th className="px-4 py-4 text-center text-xs font-bold uppercase tracking-wide text-slate-600 whitespace-nowrap">
-                                  Restored Qty
-                                </th>
+                      if (restoredLoading) {
+                        return (
+                          <div
+                            className="
+            rounded-3xl
+            border
+            border-slate-200
+            bg-white
+            px-6
+            py-10
+            text-center
+          "
+                          >
+                            <p className="text-sm font-medium text-slate-500">
+                              Loading restored items...
+                            </p>
+                          </div>
+                        );
+                      }
 
-                                <th className="px-4 py-4 text-right text-xs font-bold uppercase tracking-wide text-slate-600 whitespace-nowrap">
-                                  Unit Price
-                                </th>
+                      if (!flightRestoredItems.length) {
+                        return (
+                          <div
+                            className="
+            rounded-3xl
+            border
+            border-dashed
+            border-slate-300
+            bg-white
+            px-6
+            py-10
+            text-center
+          "
+                          >
+                            <p className="text-sm font-medium text-slate-500">
+                              No restored items present
+                            </p>
+                          </div>
+                        );
+                      }
 
-                                <th className="px-4 py-4 text-right text-xs font-bold uppercase tracking-wide text-slate-600 whitespace-nowrap">
-                                  Total
-                                </th>
-                              </tr>
-                            </thead>
+                      return (
+                        <>
+                          <div
+                            className="
+            overflow-x-auto
+            rounded-3xl
+            border
+            border-slate-200
+            bg-white
+          "
+                          >
+                            <table className="min-w-[900px] w-full">
+                              <thead className="bg-slate-100">
+                                <tr>
+                                  <th className="px-4 py-4 text-left text-xs font-bold uppercase tracking-wide text-slate-600 whitespace-nowrap">
+                                    S.No
+                                  </th>
 
-                            <tbody>
-                              {flight.items
-                                .filter(
-                                  (item: any) =>
-                                    Number(item.restoredQuantity || 0) > 0,
-                                )
-                                .map((item: any, index: number) => {
-                                  const restoredTotal =
-                                    Number(item.price || 0) *
-                                    Number(item.restoredQuantity || 0);
+                                  <th className="px-4 py-4 text-left text-xs font-bold uppercase tracking-wide text-slate-600 whitespace-nowrap">
+                                    Item
+                                  </th>
 
-                                  return (
-                                    <tr
-                                      key={index}
-                                      className="
-                            border-t
-                            border-slate-100
-                            hover:bg-slate-50
+                                  <th className="px-4 py-4 text-left text-xs font-bold uppercase tracking-wide text-slate-600 whitespace-nowrap">
+                                    Category
+                                  </th>
+
+                                  <th className="px-4 py-4 text-left text-xs font-bold uppercase tracking-wide text-slate-600 whitespace-nowrap">
+                                    Vendor
+                                  </th>
+
+                                  <th className="px-4 py-4 text-center text-xs font-bold uppercase tracking-wide text-slate-600 whitespace-nowrap">
+                                    Restored Qty
+                                  </th>
+
+                                  <th className="px-4 py-4 text-right text-xs font-bold uppercase tracking-wide text-slate-600 whitespace-nowrap">
+                                    Unit Price
+                                  </th>
+
+                                  <th className="px-4 py-4 text-right text-xs font-bold uppercase tracking-wide text-slate-600 whitespace-nowrap">
+                                    Total
+                                  </th>
+                                </tr>
+                              </thead>
+
+                              <tbody>
+                                {flightRestoredItems.map(
+                                  (restored: any, index: number) => {
+                                    const originalItem = flight.items.find(
+                                      (item: any) =>
+                                        item.id === restored.itemId,
+                                    );
+
+                                    const restoredTotalPrice =
+                                      Number(originalItem?.price || 0) *
+                                      Number(restored.returnedQty || 0);
+
+                                    return (
+                                      <tr
+                                        key={restored.id}
+                                        className="
+                        border-t
+                        border-slate-100
+                        hover:bg-slate-50
+                      "
+                                      >
+                                        <td className="px-4 py-4">
+                                          <p className="text-sm font-bold text-slate-900">
+                                            {index + 1}
+                                          </p>
+                                        </td>
+
+                                        <td className="min-w-[220px] px-4 py-4">
+                                          <p className="text-sm font-bold text-slate-900">
+                                            {originalItem?.name}
+                                          </p>
+                                        </td>
+
+                                        <td className="px-4 py-4">
+                                          <span
+                                            className="
+                            inline-flex
+                            rounded-full
+                            bg-slate-100
+                            px-2.5
+                            py-1
+                            text-[11px]
+                            font-semibold
+                            text-slate-600
                           "
-                                    >
-                                      <td className="min-w-[220px] px-4 py-4">
-                                        <p className="text-sm font-bold text-slate-900">
-                                          {item.name}
-                                        </p>
-                                      </td>
+                                          >
+                                            {originalItem?.category || "-"}
+                                          </span>
+                                        </td>
 
-                                      <td className="px-4 py-4">
-                                        <span
-                                          className="
-                                inline-flex
-                                rounded-full
-                                bg-slate-100
-                                px-2.5
-                                py-1
-                                text-[11px]
-                                font-semibold
-                                text-slate-600
-                                whitespace-nowrap
-                              "
-                                        >
-                                          {item.category || "-"}
-                                        </span>
-                                      </td>
+                                        <td className="px-4 py-4">
+                                          <span
+                                            className="
+                            inline-flex
+                            rounded-full
+                            bg-emerald-100
+                            px-2.5
+                            py-1
+                            text-[11px]
+                            font-semibold
+                            text-emerald-700
+                          "
+                                          >
+                                            {originalItem?.vendorName ||
+                                              "Global Catalog"}
+                                          </span>
+                                        </td>
 
-                                      <td className="px-4 py-4">
-                                        <span
-                                          className="
-                                inline-flex
-                                rounded-full
-                                bg-emerald-100
-                                px-2.5
-                                py-1
-                                text-[11px]
-                                font-semibold
-                                text-emerald-700
-                                whitespace-nowrap
-                              "
-                                        >
-                                          {item.vendorName || "Global Catalog"}
-                                        </span>
-                                      </td>
+                                        <td className="px-4 py-4 text-center">
+                                          <span className="text-sm font-bold text-slate-900">
+                                            {restored.returnedQty}
+                                          </span>
+                                        </td>
 
-                                      <td className="px-4 py-4 text-center">
-                                        <span className="text-sm font-bold text-slate-900">
-                                          {item.restoredQuantity}
-                                        </span>
-                                      </td>
+                                        <td className="px-4 py-4 text-right">
+                                          <span className="text-sm font-semibold text-slate-700">
+                                            ₹
+                                            {Number(
+                                              originalItem?.price || 0,
+                                            ).toLocaleString()}
+                                          </span>
+                                        </td>
 
-                                      <td className="px-4 py-4 text-right">
-                                        <span className="text-sm font-semibold text-slate-700">
-                                          ₹
-                                          {Number(
-                                            item.price || 0,
-                                          ).toLocaleString()}
-                                        </span>
-                                      </td>
-
-                                      <td className="px-4 py-4 text-right">
-                                        <span className="text-sm font-bold text-emerald-600">
-                                          ₹{restoredTotal.toLocaleString()}
-                                        </span>
-                                      </td>
-                                    </tr>
-                                  );
-                                })}
-                            </tbody>
-                          </table>
-                        </div>
-
-                        {/* RESTORED TOTAL */}
-                        <div
-                          className="
-                mt-4
-                flex
-                items-center
-                justify-between
-                rounded-[28px]
-                bg-emerald-600
-                px-5
-                py-5
-                text-white
-              "
-                        >
-                          <div>
-                            <p className="text-lg font-bold">
-                              Restored Items Total
-                            </p>
-
-                            <p className="text-xs text-emerald-100">
-                              Total restored grocery value
-                            </p>
+                                        <td className="px-4 py-4 text-right">
+                                          <span className="text-sm font-bold text-emerald-600">
+                                            ₹
+                                            {restoredTotalPrice.toLocaleString()}
+                                          </span>
+                                        </td>
+                                      </tr>
+                                    );
+                                  },
+                                )}
+                              </tbody>
+                            </table>
                           </div>
 
-                          <div className="text-2xl font-bold">
-                            ₹
-                            {flight.items
-                              ?.reduce((sum: number, item: any) => {
-                                return (
-                                  sum +
-                                  Number(item.price || 0) *
-                                    Number(item.restoredQuantity || 0)
-                                );
-                              }, 0)
-                              .toLocaleString()}
+                          {/* TOTAL */}
+                          <div
+                            className="
+            mt-4
+            flex
+            items-center
+            justify-between
+            rounded-[28px]
+            bg-emerald-600
+            px-5
+            py-5
+            text-white
+          "
+                          >
+                            <div>
+                              <p className="text-lg font-bold">
+                                Restored Items Total
+                              </p>
+
+                              <p className="text-xs text-emerald-100">
+                                Total restored grocery value
+                              </p>
+                            </div>
+
+                            <div className="text-xl md:text-2xl font-bold">
+                              ₹{restoredTotal.toLocaleString()}
+                            </div>
                           </div>
-                        </div>
-                      </>
-                    ) : (
-                      <div
-                        className="
-              rounded-3xl
-              border
-              border-dashed
-              border-slate-300
-              bg-white
-              px-6
-              py-10
-              text-center
-            "
-                      >
-                        <p className="text-sm font-medium text-slate-500">
-                          No restored quantity present
-                        </p>
-                      </div>
-                    )}
+                        </>
+                      );
+                    })()}
                   </div>
                 </div>
               </div>
