@@ -495,7 +495,7 @@ export default function FoodOnboard() {
                                       text-emerald-700
                                     "
                                   >
-                                    {item.vendorName || "Global Catalog"}
+                                    {item.vendorName || "Grocery Catalog"}
                                   </span>
                                 </td>
 

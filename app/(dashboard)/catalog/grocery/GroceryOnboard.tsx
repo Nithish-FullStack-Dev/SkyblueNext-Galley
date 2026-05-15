@@ -464,7 +464,7 @@ export default function GroceryOnboard() {
                                 whitespace-nowrap
                               "
                                       >
-                                        {item.vendorName || "Global Catalog"}
+                                        {item.vendorName || "Grocery Catalog"}
                                       </span>
                                     </td>
 
@@ -737,7 +737,7 @@ export default function GroceryOnboard() {
                           "
                                           >
                                             {originalItem?.vendorName ||
-                                              "Global Catalog"}
+                                              "Grocery Catalog"}
                                           </span>
                                         </td>
 

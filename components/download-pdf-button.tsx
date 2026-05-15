@@ -237,7 +237,7 @@ const styles = StyleSheet.create({
 
 function OrderPDF({ order }: any) {
   const vendorTotals = order.items?.reduce((acc: any, item: any) => {
-    const key = item.vendorName || item.vendor?.name || "Global Catalog";
+    const key = item.vendorName || item.vendor?.name || "Grocery Catalog";
 
     const total = Number(item.price || 0) * Number(item.quantity || 0);
 
@@ -360,7 +360,9 @@ function OrderPDF({ order }: any) {
 
                   <View style={styles.colVendor}>
                     <Text style={styles.vendorText}>
-                      {item.vendorName || item.vendor?.name || "Global Catalog"}
+                      {item.vendorName ||
+                        item.vendor?.name ||
+                        "Grocery Catalog"}
                     </Text>
                   </View>
 
