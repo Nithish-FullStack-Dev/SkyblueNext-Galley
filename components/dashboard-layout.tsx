@@ -21,6 +21,7 @@ import {
   Menu,
   X,
   ChevronRight,
+  BarChart,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
@@ -163,12 +164,12 @@ export default function DashboardLayout({
         permission: "view_users",
       },
 
-      // {
-      //   href: "/settings",
-      //   icon: SettingsIcon,
-      //   label: "Settings",
-      //   permission: "view_settings",
-      // },
+      {
+        href: "/flight-reports",
+        icon: BarChart,
+        label: "Reports",
+        permission: "view_reports",
+      },
     ],
   };
 
@@ -193,7 +194,7 @@ export default function DashboardLayout({
         </Button>
       </div>
 
-      <div className="flex-1 overflow-y-auto py-6 px-3 space-y-8 scrollbar-hide">
+      <div className="flex-1 overflow-y-auto py-6 px-3 space-y-8 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
         <section>
           {!isCollapsed && (
             <p className="px-3 text-[10px] font-bold text-white/40 uppercase tracking-[0.2em] mb-3">
@@ -353,7 +354,18 @@ export default function DashboardLayout({
           </div>
         </header>
 
-        <main className="flex-1 overflow-auto bg-slate-50 p-6 md:p-8">
+        <main
+          className="
+    flex-1
+    overflow-auto
+    bg-slate-50
+    p-6
+    md:p-8
+    [scrollbar-width:none]
+    [-ms-overflow-style:none]
+    [&::-webkit-scrollbar]:hidden
+  "
+        >
           <div className="max-w-7xl mx-auto">{children}</div>
         </main>
       </div>

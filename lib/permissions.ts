@@ -17,6 +17,7 @@ export const permissions = {
         "view_settings",
         "view_users",
         "view_approvals",
+        "view_reports",
     ],
 
     director: [
@@ -31,6 +32,7 @@ export const permissions = {
         "view_tracking",
         "view_approvals",
         "view_catalog",
+        "view_reports",
     ],
 
     approver: [
@@ -42,6 +44,7 @@ export const permissions = {
         "view_flights",
         "view_tracking",
         "view_approvals",
+        "view_reports",
     ],
 
     pilot: [

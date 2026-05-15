@@ -93,7 +93,7 @@ export default async function EditFlightPage({
   };
 
   return (
-    <div className="p-4 sm:p-8 max-w-[1600px] mx-auto">
+    <div className="max-w-[1600px] mx-auto">
       <FlightOrderForm
         id={params.id}
         initialData={formattedFlight}

@@ -71,36 +71,6 @@ export default function UsersClient({ users: initialUsers }: Props) {
   });
   const [editImageFile, setEditImageFile] = useState<File | null>(null);
 
-  // const [rolePermissions, setRolePermissions] = useState({
-  //   admin: [
-  //     "view_dashboard",
-  //     "view_flights",
-  //     "view_catalog",
-  //     "view_vendors",
-  //     "view_approvals",
-  //     "view_tracking",
-  //     "view_users",
-  //     "view_settings",
-  //   ],
-
-  //   director: [
-  //     "view_dashboard",
-  //     "view_flights",
-  //     "view_tracking",
-  //     "view_approvals",
-  //   ],
-
-  //   approver: [
-  //     "view_dashboard",
-  //     "view_flights",
-  //     "view_tracking",
-  //     "view_approvals",
-  //   ],
-
-  //   pilot: ["view_dashboard", "view_flights", "view_tracking"],
-
-  //   crew: ["view_dashboard", "view_flights", "view_catalog"],
-  // });
   const availablePermissions = [
     {
       key: "view_dashboard",
@@ -138,8 +108,8 @@ export default function UsersClient({ users: initialUsers }: Props) {
     },
 
     {
-      key: "view_settings",
-      label: "Settings",
+      key: "view_reports",
+      label: "Reports",
     },
   ];
   const [newUser, setNewUser] = useState({
@@ -524,30 +494,34 @@ export default function UsersClient({ users: initialUsers }: Props) {
 
                   {/* ACTIONS */}
                   <div
-                    className="
-          grid
-          grid-cols-1
-          sm:grid-cols-3
-          gap-3
-          w-full
-          xl:w-auto
-          xl:min-w-[420px]
-        "
+                    className={cn(
+                      `
+      grid
+      gap-3
+      w-full
+      xl:w-auto
+    `,
+                      user.role === "admin"
+                        ? "grid-cols-1 sm:grid-cols-1 xl:min-w-[180px]"
+                        : "grid-cols-1 sm:grid-cols-3 xl:min-w-[420px]",
+                    )}
                   >
-                    <Button
-                      variant="outline"
-                      className="
-            h-11
-            rounded-2xl
-            border-[#1868A5]/20
-            hover:bg-[#1868A5]
-            hover:text-white
-            transition-all
-          "
-                      onClick={() => handleStatusToggle(user)}
-                    >
-                      {user.status === "Active" ? "Deactivate" : "Activate"}
-                    </Button>
+                    {user.role !== "admin" && (
+                      <Button
+                        variant="outline"
+                        className="
+      h-11
+      rounded-2xl
+      border-[#1868A5]/20
+      hover:bg-[#1868A5]
+      hover:text-white
+      transition-all
+    "
+                        onClick={() => handleStatusToggle(user)}
+                      >
+                        {user.status === "Active" ? "Deactivate" : "Activate"}
+                      </Button>
+                    )}
 
                     <Button
                       variant="outline"
@@ -576,19 +550,21 @@ export default function UsersClient({ users: initialUsers }: Props) {
                       Edit
                     </Button>
 
-                    <Button
-                      className="
-            h-11
-            rounded-2xl
-            bg-red-500
-            hover:bg-red-600
-            text-white
-          "
-                      onClick={() => setDeleteUser(user)}
-                    >
-                      <Trash2 className="w-4 h-4 mr-2" />
-                      Delete
-                    </Button>
+                    {user.role !== "admin" && (
+                      <Button
+                        className="
+      h-11
+      rounded-2xl
+      bg-red-500
+      hover:bg-red-600
+      text-white
+    "
+                        onClick={() => setDeleteUser(user)}
+                      >
+                        <Trash2 className="w-4 h-4 mr-2" />
+                        Delete
+                      </Button>
+                    )}
                   </div>
                 </div>
               ))}

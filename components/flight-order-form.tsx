@@ -99,7 +99,7 @@ export default function FlightOrderForm({
   useEffect(() => {
     setCategoryFilter("All");
   }, [catalogFilter, selectedVendorIds]);
-  const [flightOpen, setFlightOpen] = useState(true);
+  const [flightOpen, setFlightOpen] = useState(false);
 
   const {
     register,
@@ -385,6 +385,16 @@ export default function FlightOrderForm({
         ]),
     ).values(),
   );
+  const lockedStatuses = [
+    "Rejected",
+    "Cancelled",
+    "Completed",
+    "Confirmed",
+    "Delivered",
+  ];
+
+  const isLocked =
+    initialData?.status && lockedStatuses.includes(initialData.status);
   return (
     <div className="space-y-8">
       {/* HEADER */}
@@ -412,7 +422,7 @@ export default function FlightOrderForm({
         </div>
 
         <div className="flex flex-col sm:flex-row gap-3">
-          {isReviewMode && (
+          {isReviewMode && !isLocked && (
             <div className="flex flex-wrap gap-3">
               {/* OVERALL PDF */}
               <DownloadPDFButton order={initialData} />
@@ -444,7 +454,7 @@ export default function FlightOrderForm({
             </div>
           )}
 
-          {!isReviewMode && (
+          {!isReviewMode && !isLocked && (
             <>
               <Button
                 variant="outline"

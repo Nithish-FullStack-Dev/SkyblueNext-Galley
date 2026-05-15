@@ -419,10 +419,14 @@ export default function TrackingClient({ orders }: Props) {
 
     setRestoreItems(
       order.items
-        .filter(
-          (item: any) =>
-            item.itemId && item.itemId !== "custom" && !item.vendorId,
-        )
+        .filter((item: any) => {
+          const isGlobalItem =
+            item.itemId && item.itemId !== "custom" && !item.vendorId;
+
+          const isGrocery = item.type?.toLowerCase() === "grocery";
+
+          return isGlobalItem && isGrocery;
+        })
         .map((item: any) => {
           const alreadyRestored = (order.restoredItems || [])
             .filter((restore: any) => restore.itemId === item.id)
@@ -1506,30 +1510,108 @@ export default function TrackingClient({ orders }: Props) {
                     </div>
                     <div className="flex items-center gap-2 shrink-0">
                       <button
-                        onClick={() => handleRestoreQtyChange(item.id, -1)}
+                        onMouseDown={() => {
+                          handleRestoreQtyChange(item.id, -1);
+
+                          const interval = setInterval(() => {
+                            handleRestoreQtyChange(item.id, -1);
+                          }, 120);
+
+                          const stop = () => {
+                            clearInterval(interval);
+
+                            window.removeEventListener("mouseup", stop);
+                          };
+
+                          window.addEventListener("mouseup", stop);
+                        }}
                         disabled={item.returnedQty === 0}
-                        className="w-8 h-8 rounded-xl border border-slate-200 bg-white flex items-center justify-center hover:bg-slate-100 disabled:opacity-40 transition-colors"
+                        className="
+      w-9
+      h-9
+      rounded-xl
+      border
+      border-slate-200
+      bg-white
+      flex
+      items-center
+      justify-center
+      hover:bg-slate-100
+      disabled:opacity-40
+      transition-colors
+    "
                       >
-                        <Minus className="w-3.5 h-3.5 text-slate-600" />
+                        <Minus className="w-4 h-4 text-slate-600" />
                       </button>
-                      <div className="w-10 text-center">
-                        <span
-                          className={cn(
-                            "text-base font-bold",
-                            item.returnedQty > 0
-                              ? "text-emerald-600"
-                              : "text-slate-400",
-                          )}
-                        >
-                          {item.returnedQty}
-                        </span>
-                      </div>
+
+                      <Input
+                        type="number"
+                        min={0}
+                        max={item.quantity}
+                        value={item.returnedQty}
+                        onChange={(e) => {
+                          const value = Number(e.target.value);
+
+                          setRestoreItems((prev) =>
+                            prev.map((restoreItem) =>
+                              restoreItem.id === item.id
+                                ? {
+                                    ...restoreItem,
+                                    returnedQty: Math.min(
+                                      item.quantity,
+                                      Math.max(0, value || 0),
+                                    ),
+                                  }
+                                : restoreItem,
+                            ),
+                          );
+                        }}
+                        className="
+      w-20
+      h-10
+      rounded-xl
+      border-slate-200
+      text-center
+      font-bold
+      text-sm
+      focus-visible:ring-emerald-500
+      focus-visible:border-emerald-500
+    "
+                      />
+
                       <button
-                        onClick={() => handleRestoreQtyChange(item.id, 1)}
+                        onMouseDown={() => {
+                          handleRestoreQtyChange(item.id, 1);
+
+                          const interval = setInterval(() => {
+                            handleRestoreQtyChange(item.id, 1);
+                          }, 120);
+
+                          const stop = () => {
+                            clearInterval(interval);
+
+                            window.removeEventListener("mouseup", stop);
+                          };
+
+                          window.addEventListener("mouseup", stop);
+                        }}
                         disabled={item.returnedQty >= item.quantity}
-                        className="w-8 h-8 rounded-xl border border-slate-200 bg-white flex items-center justify-center hover:bg-slate-100 disabled:opacity-40 transition-colors"
+                        className="
+      w-9
+      h-9
+      rounded-xl
+      border
+      border-slate-200
+      bg-white
+      flex
+      items-center
+      justify-center
+      hover:bg-slate-100
+      disabled:opacity-40
+      transition-colors
+    "
                       >
-                        <Plus className="w-3.5 h-3.5 text-slate-600" />
+                        <Plus className="w-4 h-4 text-slate-600" />
                       </button>
                     </div>
                   </div>
