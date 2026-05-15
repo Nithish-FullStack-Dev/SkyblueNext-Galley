@@ -838,133 +838,137 @@ export default function TrackingClient({ orders }: Props) {
                               </div>
                             )}
 
-                            <div className="grid grid-cols-2 lg:grid-cols-4 gap-5 border-t border-slate-100 pt-6">
+                            <div
+                              className={cn(
+                                "grid gap-5 border-t border-slate-100 pt-6",
+                                isTerminal
+                                  ? "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3"
+                                  : "grid-cols-2 lg:grid-cols-4",
+                              )}
+                            >
+                              {/* ITEMS */}
                               <div>
                                 <p className="text-[10px] uppercase tracking-widest font-bold text-slate-400 mb-1.5">
                                   Items
                                 </p>
+
                                 <p className="text-lg font-bold text-slate-900">
                                   {order.items?.length ?? 0}
                                 </p>
                               </div>
 
-                              <div>
-                                <p className="text-[10px] uppercase tracking-widest font-bold text-slate-400 mb-1.5">
-                                  Vendor
-                                </p>
-                                <div className="flex flex-wrap gap-1.5">
-                                  {Array.from(
-                                    new Set(
-                                      order.items
-                                        ?.map(
-                                          (item: any) =>
-                                            item.vendor?.name ||
-                                            item.vendorName,
-                                        )
-                                        .filter(Boolean),
-                                    ),
-                                  ).map((vendor: any) => (
-                                    <span
-                                      key={vendor}
-                                      className="inline-flex items-center rounded-lg px-2.5 py-1 text-[11px] font-semibold bg-slate-100 text-slate-600"
-                                    >
-                                      {vendor}
-                                    </span>
-                                  ))}
-                                  {!order.items?.some(
-                                    (item: any) =>
-                                      item.vendor?.name || item.vendorName,
-                                  ) && (
-                                    <span className="text-sm font-semibold text-slate-400">
-                                      —
-                                    </span>
-                                  )}
-                                </div>
-                              </div>
-
-                              <div>
-                                <p className="text-[10px] uppercase tracking-widest font-bold text-slate-400 mb-1.5">
-                                  Submitted
-                                </p>
-                                <p className="text-sm font-bold text-slate-900">
-                                  {format(
-                                    new Date(order.createdAt),
-                                    "MMM dd, yyyy",
-                                  )}
-                                </p>
-                              </div>
-
-                              <div>
-                                {order.status === "Rejected" ? (
-                                  <div className="space-y-3">
-                                    <div>
-                                      <p className="text-[10px] uppercase tracking-widest font-bold text-red-400 mb-1">
-                                        Rejected By
-                                      </p>
-
-                                      <p className="text-sm font-bold text-slate-900">
-                                        {order.rejector?.name || "—"}
-                                      </p>
-                                    </div>
-
-                                    {order.rejectionReason && (
-                                      <div className="rounded-2xl border border-red-200 bg-red-50 p-4">
-                                        <p className="text-[10px] uppercase tracking-widest font-bold text-red-500 mb-2">
-                                          Rejection Message
-                                        </p>
-
-                                        <p className="text-sm text-red-700 leading-relaxed">
-                                          {order.rejectionReason}
-                                        </p>
-                                      </div>
-                                    )}
-                                  </div>
-                                ) : order.status === "Cancelled" ? (
-                                  <div className="space-y-3">
-                                    <div>
-                                      <p className="text-[10px] uppercase tracking-widest font-bold text-slate-400 mb-1">
-                                        Cancelled
-                                      </p>
-
-                                      <p className="text-sm font-bold text-slate-900">
-                                        Order Cancelled
-                                      </p>
-                                    </div>
-
-                                    {order.cancelReason && (
-                                      <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                                        <p className="text-[10px] uppercase tracking-widest font-bold text-slate-500 mb-2">
-                                          Cancel Message
-                                        </p>
-
-                                        <p className="text-sm text-slate-700 leading-relaxed">
-                                          {order.cancelReason}
-                                        </p>
-                                      </div>
-                                    )}
-                                  </div>
-                                ) : (
+                              {/* NORMAL FLOW */}
+                              {!isTerminal && (
+                                <>
                                   <div>
                                     <p className="text-[10px] uppercase tracking-widest font-bold text-slate-400 mb-1.5">
-                                      Approved By
+                                      Vendor
                                     </p>
-                                    {order.approver ? (
-                                      <div>
-                                        <p className="text-sm font-bold text-slate-900">
-                                          {order.approver.name}
-                                        </p>
-                                        <span className="inline-flex items-center mt-1 rounded-lg px-2 py-0.5 text-[10px] font-bold bg-[#1868A5]/10 text-[#1868A5]">
-                                          {order.approver.role}
+
+                                    <div className="flex flex-wrap gap-1.5">
+                                      {Array.from(
+                                        new Set(
+                                          order.items
+                                            ?.map(
+                                              (item: any) =>
+                                                item.vendor?.name ||
+                                                item.vendorName,
+                                            )
+                                            .filter(Boolean),
+                                        ),
+                                      ).map((vendor: any) => (
+                                        <span
+                                          key={vendor}
+                                          className="inline-flex items-center rounded-lg px-2.5 py-1 text-[11px] font-semibold bg-slate-100 text-slate-600"
+                                        >
+                                          {vendor}
                                         </span>
-                                      </div>
-                                    ) : (
-                                      <p className="text-sm font-semibold text-slate-400">
-                                        Pending
-                                      </p>
-                                    )}
+                                      ))}
+
+                                      {!order.items?.some(
+                                        (item: any) =>
+                                          item.vendor?.name || item.vendorName,
+                                      ) && (
+                                        <span className="text-sm font-semibold text-slate-400">
+                                          —
+                                        </span>
+                                      )}
+                                    </div>
                                   </div>
-                                )}
-                              </div>
+
+                                  <div>
+                                    <p className="text-[10px] uppercase tracking-widest font-bold text-slate-400 mb-1.5">
+                                      Submitted
+                                    </p>
+
+                                    <p className="text-sm font-bold text-slate-900">
+                                      {format(
+                                        new Date(order.createdAt),
+                                        "MMM dd, yyyy",
+                                      )}
+                                    </p>
+                                  </div>
+                                </>
+                              )}
+
+                              {/* REJECTED */}
+                              {order.status === "Rejected" && (
+                                <div className="sm:col-span-1 lg:col-span-2">
+                                  <p className="text-[10px] uppercase tracking-widest font-bold text-red-400 mb-1">
+                                    Rejected By
+                                  </p>
+
+                                  <p className="text-sm font-bold text-slate-900 mb-1">
+                                    {order.rejector?.name || "—"}
+                                  </p>
+
+                                  {order.rejectionReason && (
+                                    <p className="text-sm text-red-600 leading-relaxed break-words">
+                                      {order.rejectionReason}
+                                    </p>
+                                  )}
+                                </div>
+                              )}
+
+                              {/* CANCELLED */}
+                              {order.status === "Cancelled" && (
+                                <div className="sm:col-span-1 lg:col-span-2">
+                                  <p className="text-[10px] uppercase tracking-widest font-bold text-slate-400 mb-1">
+                                    Cancelled By
+                                  </p>
+
+                                  <p className="text-sm font-bold text-slate-900 mb-1">
+                                    {order.rejector?.name || "—"}
+                                  </p>
+
+                                  {order.cancelReason && (
+                                    <p className="text-sm text-slate-600 leading-relaxed break-words">
+                                      {order.cancelReason}
+                                    </p>
+                                  )}
+                                </div>
+                              )}
+
+                              {/* APPROVED FLOW */}
+                              {!isTerminal && (
+                                <div>
+                                  <p className="text-[10px] uppercase tracking-widest font-bold text-slate-400 mb-1.5">
+                                    Approved By
+                                  </p>
+
+                                  {order.approver ? (
+                                    <div>
+                                      <p className="text-sm font-bold text-slate-900">
+                                        {order.approver.name}
+                                      </p>
+                                    </div>
+                                  ) : (
+                                    <p className="text-sm font-semibold text-slate-400">
+                                      Pending
+                                    </p>
+                                  )}
+                                </div>
+                              )}
                             </div>
                           </div>
 

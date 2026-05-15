@@ -105,7 +105,10 @@ export async function PATCH(
                         status === "Cancelled"
                             ? new Date()
                             : flight.cancelledAt,
-
+                    rejectedBy:
+                        status === "Cancelled"
+                            ? session.user.id
+                            : flight.rejectedBy,
                     billAmount:
                         billAmount !== undefined
                             ? Number(billAmount)
