@@ -603,39 +603,37 @@ export default function GroceryOnboard() {
                                 text-emerald-700
                                 whitespace-nowrap
                               "
-                                            >
-                                              {item.vendorName ||
-                                                "Global Catalog"}
-                                            </span>
-                                          </td>
+                                      >
+                                        {item.vendorName || "Grocery Catalog"}
+                                      </span>
+                                    </td>
 
-                                          <td className="px-4 py-4 text-center">
-                                            <span className="text-sm font-bold text-slate-900">
-                                              {item.quantity}
-                                            </span>
-                                          </td>
+                                    <td className="px-4 py-4 text-center">
+                                      <span className="text-sm font-bold text-slate-900">
+                                        {item.quantity}
+                                      </span>
+                                    </td>
 
-                                          <td className="px-4 py-4 text-right">
-                                            <span className="text-sm font-semibold text-slate-700">
-                                              ₹
-                                              {Number(
-                                                item.price || 0,
-                                              ).toLocaleString()}
-                                            </span>
-                                          </td>
+                                    <td className="px-4 py-4 text-right">
+                                      <span className="text-sm font-semibold text-slate-700">
+                                        ₹
+                                        {Number(
+                                          item.price || 0,
+                                        ).toLocaleString()}
+                                      </span>
+                                    </td>
 
-                                          <td className="px-4 py-4 text-right">
-                                            <span className="text-sm font-bold text-[#1868A5]">
-                                              ₹{itemTotal.toLocaleString()}
-                                            </span>
-                                          </td>
-                                        </tr>
-                                      );
-                                    },
-                                  )}
-                                </tbody>
-                              </table>
-                            </div>
+                                    <td className="px-4 py-4 text-right">
+                                      <span className="text-sm font-bold text-[#1868A5]">
+                                        ₹{itemTotal.toLocaleString()}
+                                      </span>
+                                    </td>
+                                  </tr>
+                                );
+                              })}
+                            </tbody>
+                          </table>
+                        </div>
 
                             {/* ORDERED TOTAL */}
                             <div
@@ -878,44 +876,44 @@ export default function GroceryOnboard() {
                             font-semibold
                             text-emerald-700
                           "
-                                              >
-                                                {originalItem?.vendorName ||
-                                                  "Global Catalog"}
-                                              </span>
-                                            </td>
+                                          >
+                                            {originalItem?.vendorName ||
+                                              "Grocery Catalog"}
+                                          </span>
+                                        </td>
 
-                                            <td className="px-4 py-4 text-center">
-                                              <span className="text-sm font-bold text-slate-900">
-                                                {restored.returnedQty}
-                                              </span>
-                                            </td>
+                                        <td className="px-4 py-4 text-center">
+                                          <span className="text-sm font-bold text-slate-900">
+                                            {restored.returnedQty}
+                                          </span>
+                                        </td>
 
-                                            <td className="px-4 py-4 text-right">
-                                              <span className="text-sm font-semibold text-slate-700">
-                                                ₹
-                                                {Number(
-                                                  originalItem?.price || 0,
-                                                ).toLocaleString()}
-                                              </span>
-                                            </td>
+                                        <td className="px-4 py-4 text-right">
+                                          <span className="text-sm font-semibold text-slate-700">
+                                            ₹
+                                            {Number(
+                                              originalItem?.price || 0,
+                                            ).toLocaleString()}
+                                          </span>
+                                        </td>
 
-                                            <td className="px-4 py-4 text-right">
-                                              <span className="text-sm font-bold text-emerald-600">
-                                                ₹
-                                                {restoredTotalPrice.toLocaleString()}
-                                              </span>
-                                            </td>
-                                          </tr>
-                                        );
-                                      },
-                                    )}
-                                  </tbody>
-                                </table>
-                              </div>
+                                        <td className="px-4 py-4 text-right">
+                                          <span className="text-sm font-bold text-emerald-600">
+                                            ₹
+                                            {restoredTotalPrice.toLocaleString()}
+                                          </span>
+                                        </td>
+                                      </tr>
+                                    );
+                                  },
+                                )}
+                              </tbody>
+                            </table>
+                          </div>
 
-                              {/* TOTAL */}
-                              <div
-                                className="
+                          {/* TOTAL */}
+                          <div
+                            className="
             mt-4
             flex
             items-center

@@ -359,7 +359,7 @@ export default function FlightOrderForm({
   const watchItems = watch("items", fields);
 
   const vendorTotals = watchItems.reduce((acc: any, item: any) => {
-    const key = item.vendorName || item.vendor?.name || "Global Catalog";
+    const key = item.vendorName || item.vendor?.name || "Grocery Catalog";
 
     const total = (Number(item.price) || 0) * (Number(item.quantity) || 0);
 
