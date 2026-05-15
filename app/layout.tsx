@@ -9,6 +9,7 @@ import "./globals.css";
 import { AuthProvider } from "@/components/auth-provider";
 
 import { Toaster } from "@/components/ui/toaster";
+import QueryProvider from "./(dashboard)/query-provider";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -29,8 +30,7 @@ export default function RootLayout({
     <html lang="en">
       <body className={inter.className}>
         <AuthProvider>
-          {children}
-
+          <QueryProvider>{children}</QueryProvider>
           <Toaster />
         </AuthProvider>
       </body>
